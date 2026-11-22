@@ -458,7 +458,9 @@ if puede_ver_registros:
         else:
             vista = filtrar(pendientes, "pend")
             st.write(f"{len(vista)} registro(s) pendiente(s).")
-            tabla = vista[list(COLUMNAS_REGISTRO)].rename(columns=COLUMNAS_REGISTRO)
+            # En Registros no se muestra "Estado" (pedido de Edu, 22/11/2026). Sigue guardado en el registro.
+            columnas = {k: v for k, v in COLUMNAS_REGISTRO.items() if k != "estado"}
+            tabla = vista[list(columnas)].rename(columns=columnas)
             tabla.insert(0, "Revisado", False)
             st.write(f"**{usuario['nombre']}**, tildá los que ya viste y confirmaste, y tocá el botón para pasarlos a **Revisados**.")
             editada = st.data_editor(

@@ -26,7 +26,7 @@ Estas pestañas solo aparecen cuando se toca el nombre de **Claudia o Fernanda**
 
 - **Registros**: lo que cargó todo el equipo y falta revisar. Por defecto se ve todo, y se puede filtrar por quién lo subió o buscar por GTIN, serie o lote. La farmacéutica tilda **✔ Revisado** en los que ya vio y toca **Pasar a Revisados**.
 - **Revisados**: lo que ya revisó una farmacéutica, con quién y cuándo. Si se tildó uno por error, se puede volver a pendientes.
-- Las dos pestañas se descargan en **Excel** o **CSV**, con las columnas GTIN, Serie, Lote, Vencimiento, Envió, Fecha de la foto, Estado y Guardado el (y en Revisados, también Revisado por y Revisado el).
+- Las dos pestañas se descargan en **Excel** o **CSV**, con las columnas GTIN, Serie, Lote, Vencimiento, Envió, Fecha de la foto y Guardado el. En Revisados también salen Estado, Revisado por y Revisado el.
 
 Cada fila guarda: fecha de registro, fecha de la foto (y de dónde salió), usuario, rol, sucursal, nombre de la foto, GTIN, serie, lote, vencimiento, elaboración, si se leyó del DataMatrix o del texto, y si se corrigió a mano.
 
