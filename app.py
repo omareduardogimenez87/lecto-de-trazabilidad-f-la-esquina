@@ -21,7 +21,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import claves, registro
+from lector import registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, ocr_disponible
@@ -58,34 +58,8 @@ nombre = st.pills("¿Quién sos? Tocá tu nombre", list(USUARIOS), selection_mod
 usuario = USUARIOS.get(nombre)
 es_farmaceutica = bool(usuario and usuario["rol"].lower().startswith("farmac"))
 
-# Registros solo para farmacéuticas, con PIN (elegir el nombre no alcanza: cualquiera puede tocarlo).
-if st.session_state.get("autenticada") != nombre:
-    st.session_state["autenticada"] = None
-if es_farmaceutica and not st.session_state["autenticada"]:
-    with st.expander(f"🔒 {nombre}: ingresá tu PIN para ver los Registros", expanded=False):
-        if claves.tiene_pin(nombre):
-            with st.form(f"pin_{nombre}", clear_on_submit=True, border=False):
-                pin = st.text_input("PIN", type="password", max_chars=6)
-                if st.form_submit_button("Entrar"):
-                    if claves.verificar(nombre, pin):
-                        st.session_state["autenticada"] = nombre
-                        st.rerun()
-                    st.error("PIN incorrecto.")
-        else:
-            st.write("Es la primera vez: creá tu PIN de 4 a 6 números. No se lo pases a nadie.")
-            with st.form(f"nuevo_pin_{nombre}", clear_on_submit=True, border=False):
-                pin1 = st.text_input("PIN nuevo", type="password", max_chars=6)
-                pin2 = st.text_input("Repetilo", type="password", max_chars=6)
-                if st.form_submit_button("Crear PIN"):
-                    if not claves.pin_valido(pin1):
-                        st.error("Tiene que ser de 4 a 6 números.")
-                    elif pin1 != pin2:
-                        st.error("Los dos PIN no coinciden.")
-                    else:
-                        claves.crear_pin(nombre, pin1)
-                        st.session_state["autenticada"] = nombre
-                        st.rerun()
-puede_ver_registros = es_farmaceutica and st.session_state["autenticada"] == nombre
+# Registros y Revisados solo aparecen si se elige una farmacéutica (Claudia o Fernanda).
+puede_ver_registros = es_farmaceutica
 if not ocr_disponible():
     st.warning("El lector de texto (Tesseract) no está instalado: solo se van a leer los DataMatrix. Mirá el README.")
 
@@ -212,9 +186,13 @@ ESTILO_BOTONES = """
   min-height: 4.5rem; font-size: 0 !important; border-radius: 0.75rem; border: 1px solid rgba(49, 51, 63, 0.2);
 }
 .st-key-galeria section button * { display: none !important; }
-.st-key-camara section button::before { content: "📷  Sacar foto"; font-size: 1.25rem; }
-.st-key-galeria section button::before { content: "🖼️  Elegir de la galería"; font-size: 1.25rem; }
+.st-key-camara section button::before { content: "📷  Sacar foto"; font-size: 1.15rem; }
+.st-key-galeria section button::before { content: "🖼️  Galería"; font-size: 1.15rem; }
+/* Los dos botones en una sola línea, también en el celular. */
+.st-key-fotos [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 0.5rem; }
+.st-key-fotos [data-testid="stColumn"] { flex: 1 1 0 !important; min-width: 0 !important; width: auto !important; }
 .st-key-camara section button { background: #c62f3f; color: white; border-color: #c62f3f; }
+.st-key-galeria section button { background: white; color: #31333f !important; opacity: 1 !important; }
 </style>
 """
 
@@ -242,7 +220,8 @@ new MutationObserver(ajustar).observe(doc.body, {childList: true, subtree: true}
 def botones_de_foto(ronda: int) -> list:
     """Dos botones grandes: sacar foto con la cámara o elegir de la galería."""
     st.markdown(ESTILO_BOTONES, unsafe_allow_html=True)
-    col_cam, col_gal = st.columns(2)
+    with st.container(key="fotos"):
+        col_cam, col_gal = st.columns(2)
     with col_cam:
         with st.container(key="camara"):
             de_camara = st.file_uploader(
@@ -294,58 +273,59 @@ with tab_leer:
     for it in items:
         lec = it["lectura"]
         with st.container(border=True):
-            col_foto, col_datos = st.columns([1, 2])
-            col_foto.image(it["foto"], caption=it["archivo_foto"], use_container_width=True)
-            with col_datos:
-                st.markdown(f"### {it['estado']}")
-                st.caption(f"Leído desde: {lec['fuente']} · Foto del {it['fecha_foto']} ({it['origen_fecha_foto']})")
-                if it["estado"] == ESTADO_OTRA_FOTO:
-                    st.error(
-                        "**No estoy seguro de haber leído bien.** " + " · ".join(it["motivos"])
-                        + ". Sacá otra foto más de cerca y con buena luz, o corregí los datos a mano mirando el envase."
-                    )
-                    otra_foto = st.file_uploader(
-                        "Otra foto", type=["jpg", "jpeg", "png", "webp"], key=f"otra_{it['id']}", label_visibility="collapsed"
-                    )
-                    if otra_foto is not None:
-                        reemplazar(it["id"], otra_foto.getvalue(), otra_foto.name)
-                        st.rerun()
-                elif it["motivos"]:
-                    st.warning(" · ".join(it["motivos"]))
-                for (campo, titulo), col in zip(CAMPOS, st.columns(len(CAMPOS))):
-                    col.text_input(titulo, value=lec.get(campo, ""), key=f"{campo}_{it['id']}")
-
-                datos = datos_de(it)
-                faltan = []
-                if not gtin_es_valido(datos["gtin"]):
-                    faltan.append("el GTIN no cierra con el dígito verificador" if datos["gtin"] else "falta el GTIN")
-                if not datos["serie"]:
-                    faltan.append("falta la serie")
+            # Arriba de todo: el estado y el botón Guardar, para no tener que bajar con el scroll.
+            st.markdown(f"### {it['estado']}")
+            datos = datos_de(it)
+            faltan = []
+            if not gtin_es_valido(datos["gtin"]):
+                faltan.append("el GTIN no cierra con el dígito verificador" if datos["gtin"] else "falta el GTIN")
+            if not datos["serie"]:
+                faltan.append("falta la serie")
+            previo = it.get("duplicado")
+            if previo and (previo.get("gtin"), previo.get("serie")) != (datos["gtin"], datos["serie"]):
+                it.pop("duplicado")  # se corrigió el GTIN o la serie: ya no es el mismo envase
+                previo = None
+            if previo:
+                st.warning(
+                    f"⚠️ **Este envase ya fue cargado.** Lo registró **{previo.get('usuario') or 'alguien'}** "
+                    f"el {previo.get('fecha_registro') or '(fecha desconocida)'} "
+                    f"(lote {previo.get('lote') or '-'}, vence {previo.get('vencimiento') or '-'}). ¿Qué querés hacer?"
+                )
+                b1, b2 = st.columns(2)
+                if b1.button("🔁 Reemplazar con estos datos", key=f"reemplazar_{it['id']}", use_container_width=True):
+                    registro.reemplazar(fila_de(it))
+                    cerrar_tarjeta(it, ("success", "🔁 Se reemplazó el registro anterior con los datos nuevos. Ya podés cargar la próxima foto."))
+                    st.rerun()
+                if b2.button("🗑️ Descartar y dejar el anterior", key=f"descartar_{it['id']}", use_container_width=True):
+                    cerrar_tarjeta(it, ("info", "Se descartó esta lectura. El registro anterior quedó como estaba."))
+                    st.rerun()
+            else:
+                etiqueta = "💾 Guardar" if it["estado"] == ESTADO_OK else "💾 Coincide con el envase: guardar"
+                if st.button(etiqueta, type="primary", key=f"guardar_{it['id']}", disabled=bool(faltan), use_container_width=True):
+                    guardar_item(it)
+                    st.rerun()
                 if faltan:
-                    st.caption("Para guardar: " + " y ".join(faltan) + ".")
-                previo = it.get("duplicado")
-                if previo and (previo.get("gtin"), previo.get("serie")) != (datos["gtin"], datos["serie"]):
-                    previo = it.pop("duplicado")  # se corrigió el GTIN o la serie: ya no es el mismo envase
-                    previo = None
-                if previo:
-                    st.warning(
-                        f"⚠️ **Este envase ya fue cargado.** Lo registró **{previo.get('usuario') or 'alguien'}** "
-                        f"el {previo.get('fecha_registro') or '(fecha desconocida)'} "
-                        f"(lote {previo.get('lote') or '-'}, vence {previo.get('vencimiento') or '-'}). ¿Qué querés hacer?"
-                    )
-                    b1, b2 = st.columns(2)
-                    if b1.button("🔁 Reemplazar con estos datos", key=f"reemplazar_{it['id']}", use_container_width=True):
-                        registro.reemplazar(fila_de(it))
-                        cerrar_tarjeta(it, ("success", "🔁 Se reemplazó el registro anterior con los datos nuevos. Ya podés cargar la próxima foto."))
-                        st.rerun()
-                    if b2.button("🗑️ Descartar y dejar el anterior", key=f"descartar_{it['id']}", use_container_width=True):
-                        cerrar_tarjeta(it, ("info", "Se descartó esta lectura. El registro anterior quedó como estaba."))
-                        st.rerun()
-                else:
-                    etiqueta = "💾 Guardar" if it["estado"] == ESTADO_OK else "💾 Coincide con el envase: guardar"
-                    if st.button(etiqueta, type="primary", key=f"guardar_{it['id']}", disabled=bool(faltan), use_container_width=True):
-                        guardar_item(it)
-                        st.rerun()
+                    st.caption("Para guardar: " + " y ".join(faltan) + ". Corregilo abajo o sacá otra foto.")
+
+            if it["estado"] == ESTADO_OTRA_FOTO:
+                st.error(
+                    "**No estoy seguro de haber leído bien.** " + " · ".join(it["motivos"])
+                    + ". Sacá otra foto más de cerca y con buena luz, o corregí los datos a mano mirando el envase."
+                )
+                otra_foto = st.file_uploader(
+                    "Otra foto", type=["jpg", "jpeg", "png", "webp"], key=f"otra_{it['id']}", label_visibility="collapsed"
+                )
+                if otra_foto is not None:
+                    reemplazar(it["id"], otra_foto.getvalue(), otra_foto.name)
+                    st.rerun()
+            elif it["motivos"]:
+                st.warning(" · ".join(it["motivos"]))
+
+            # Debajo: los datos leídos (se pueden corregir) y la foto, más chica.
+            for (campo, titulo), col in zip(CAMPOS, st.columns(len(CAMPOS))):
+                col.text_input(titulo, value=lec.get(campo, ""), key=f"{campo}_{it['id']}")
+            st.image(it["foto"], caption=it["archivo_foto"], width=320)
+            st.caption(f"Leído desde: {lec['fuente']} · Foto del {it['fecha_foto']} ({it['origen_fecha_foto']})")
 
     if len(items) > 1 and st.button("🧹 Descartar todo y empezar de nuevo"):
         st.session_state["items"] = []
