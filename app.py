@@ -448,17 +448,10 @@ def filtrar(datos, clave: str):
 
 def descargas(tabla, nombre: str, clave: str) -> None:
     hoy = registro.ahora().strftime("%d-%m-%Y")
-    d1, d2 = st.columns(2)
-    d1.download_button(
+    st.download_button(
         "⬇️ Descargar Excel", registro.a_excel(tabla), f"{nombre} {hoy}.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"xlsx_{clave}",
     )
-    d2.download_button(
-        "⬇️ CSV (para otros sistemas)", tabla.to_csv(sep=";", index=False).encode("utf-8-sig"), f"{nombre} {hoy}.csv", "text/csv",
-        key=f"csv_{clave}",
-        help="Si lo abrís con Excel, los números largos (GTIN, serie) se ven mal. Para Excel usá el otro botón.",
-    )
-    st.caption("Para abrir en Excel usá **Descargar Excel**: ahí el GTIN y la serie se ven completos, con el 0 de adelante.")
 
 
 datos = registro.leer() if puede_ver_registros else registro.leer().iloc[0:0]
