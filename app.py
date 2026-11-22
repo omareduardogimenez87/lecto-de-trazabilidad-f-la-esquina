@@ -19,8 +19,9 @@ from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
-from lector import registro
+from lector import claves, registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, ocr_disponible
@@ -30,6 +31,17 @@ USUARIOS = {u["nombre"]: u for u in CONFIG["usuarios"]}
 SUCURSAL = CONFIG.get("sucursal", "")
 CAMPOS = [("gtin", "GTIN (01)"), ("serie", "Serie (21)"), ("lote", "Lote (10)"), ("vencimiento", "Vencimiento"), ("elaboracion", "Elaboración")]
 EN_MAYUSCULAS = ("gtin", "serie", "lote")
+# Columnas que se ven en Registros y salen en el Excel, con su título.
+COLUMNAS_REGISTRO = {
+    "gtin": "GTIN",
+    "serie": "Serie",
+    "lote": "Lote",
+    "vencimiento": "Vencimiento",
+    "usuario": "Envió",
+    "fecha_foto": "Fecha de la foto",
+    "estado": "Estado",
+    "fecha_registro": "Guardado el",
+}
 
 st.set_page_config(page_title="Lector de trazabilidad", page_icon="💊", layout="wide", initial_sidebar_state="collapsed")
 st.title("💊 Lector de trazabilidad")
@@ -41,8 +53,39 @@ st.session_state.setdefault("avisos", [])  # mensajes para mostrar después de g
 st.session_state.setdefault("leidas", set())  # huellas de las fotos ya leídas en esta ronda
 
 # ------------------------------------------------------------ ¿quién usa la app?
+# Los nombres salen en el orden de usuarios.json.
 nombre = st.pills("¿Quién sos? Tocá tu nombre", list(USUARIOS), selection_mode="single", key="usuario")
 usuario = USUARIOS.get(nombre)
+es_farmaceutica = bool(usuario and usuario["rol"].lower().startswith("farmac"))
+
+# Registros solo para farmacéuticas, con PIN (elegir el nombre no alcanza: cualquiera puede tocarlo).
+if st.session_state.get("autenticada") != nombre:
+    st.session_state["autenticada"] = None
+if es_farmaceutica and not st.session_state["autenticada"]:
+    with st.expander(f"🔒 {nombre}: ingresá tu PIN para ver los Registros", expanded=False):
+        if claves.tiene_pin(nombre):
+            with st.form(f"pin_{nombre}", clear_on_submit=True, border=False):
+                pin = st.text_input("PIN", type="password", max_chars=6)
+                if st.form_submit_button("Entrar"):
+                    if claves.verificar(nombre, pin):
+                        st.session_state["autenticada"] = nombre
+                        st.rerun()
+                    st.error("PIN incorrecto.")
+        else:
+            st.write("Es la primera vez: creá tu PIN de 4 a 6 números. No se lo pases a nadie.")
+            with st.form(f"nuevo_pin_{nombre}", clear_on_submit=True, border=False):
+                pin1 = st.text_input("PIN nuevo", type="password", max_chars=6)
+                pin2 = st.text_input("Repetilo", type="password", max_chars=6)
+                if st.form_submit_button("Crear PIN"):
+                    if not claves.pin_valido(pin1):
+                        st.error("Tiene que ser de 4 a 6 números.")
+                    elif pin1 != pin2:
+                        st.error("Los dos PIN no coinciden.")
+                    else:
+                        claves.crear_pin(nombre, pin1)
+                        st.session_state["autenticada"] = nombre
+                        st.rerun()
+puede_ver_registros = es_farmaceutica and st.session_state["autenticada"] == nombre
 if not ocr_disponible():
     st.warning("El lector de texto (Tesseract) no está instalado: solo se van a leer los DataMatrix. Mirá el README.")
 
@@ -142,7 +185,83 @@ def guardar_item(it: dict) -> None:
     cerrar_tarjeta(it, ("success", f"✅ Guardado: GTIN {fila['gtin']} · serie {fila['serie']}. Ya podés cargar la próxima foto."))
 
 
-tab_leer, tab_registros = st.tabs(["📷 1. Leer fotos", "📄 2. Registros"])
+TIPOS_FOTO = ["jpg", "jpeg", "png", "webp"]
+
+# Estilo de los dos botones grandes (📷 cámara y 🖼️ galería), en lugar del "Subir" de Streamlit.
+ESTILO_BOTONES = """
+<style>
+.st-key-camara [data-testid="stFileUploaderDropzoneInstructions"],
+.st-key-camara [data-testid="stFileChip"],
+.st-key-camara [data-testid="stFileChips"] > div:not(:has(button[aria-label="Add files"])) { display: none !important; }
+.st-key-camara section { padding: 0; background: transparent; border: none; display: block; }
+.st-key-camara section > span, .st-key-camara [data-testid="stFileChips"], .st-key-camara [data-testid="stFileChips"] > *, .st-key-camara section button {
+  display: block; width: 100%; max-width: none;
+}
+.st-key-camara section button {
+  min-height: 4.5rem; font-size: 0 !important; border-radius: 0.75rem; border: 1px solid rgba(49, 51, 63, 0.2);
+}
+.st-key-camara section button * { display: none !important; }
+.st-key-galeria [data-testid="stFileUploaderDropzoneInstructions"],
+.st-key-galeria [data-testid="stFileChip"],
+.st-key-galeria [data-testid="stFileChips"] > div:not(:has(button[aria-label="Add files"])) { display: none !important; }
+.st-key-galeria section { padding: 0; background: transparent; border: none; display: block; }
+.st-key-galeria section > span, .st-key-galeria [data-testid="stFileChips"], .st-key-galeria [data-testid="stFileChips"] > *, .st-key-galeria section button {
+  display: block; width: 100%; max-width: none;
+}
+.st-key-galeria section button {
+  min-height: 4.5rem; font-size: 0 !important; border-radius: 0.75rem; border: 1px solid rgba(49, 51, 63, 0.2);
+}
+.st-key-galeria section button * { display: none !important; }
+.st-key-camara section button::before { content: "📷  Sacar foto"; font-size: 1.25rem; }
+.st-key-galeria section button::before { content: "🖼️  Elegir de la galería"; font-size: 1.25rem; }
+.st-key-camara section button { background: #c62f3f; color: white; border-color: #c62f3f; }
+</style>
+"""
+
+# En el celular, "capture" hace que el botón abra directo la cámara trasera.
+# Streamlit no tiene esa opción, así que se la agregamos al botón con un poco de JavaScript.
+# (Se usa la cámara del propio celular: funciona aunque la app se abra por http en el WiFi.)
+SCRIPT_CAMARA = """
+<script>
+const doc = window.parent.document;
+function ajustar() {
+  doc.querySelectorAll('.st-key-camara input[type=file]').forEach(i => {
+    if (i.getAttribute('capture') !== 'environment') i.setAttribute('capture', 'environment');
+    if (i.getAttribute('accept') !== 'image/*') i.setAttribute('accept', 'image/*');
+  });
+  doc.querySelectorAll('.st-key-galeria input[type=file]').forEach(i => {
+    if (i.getAttribute('accept') !== 'image/*') i.setAttribute('accept', 'image/*');
+  });
+}
+ajustar();
+new MutationObserver(ajustar).observe(doc.body, {childList: true, subtree: true});
+</script>
+"""
+
+
+def botones_de_foto(ronda: int) -> list:
+    """Dos botones grandes: sacar foto con la cámara o elegir de la galería."""
+    st.markdown(ESTILO_BOTONES, unsafe_allow_html=True)
+    col_cam, col_gal = st.columns(2)
+    with col_cam:
+        with st.container(key="camara"):
+            de_camara = st.file_uploader(
+                "Cámara", type=TIPOS_FOTO, accept_multiple_files=True, key=f"camara_{ronda}", label_visibility="collapsed"
+            )
+    with col_gal:
+        with st.container(key="galeria"):
+            de_galeria = st.file_uploader(
+                "Galería", type=TIPOS_FOTO, accept_multiple_files=True, key=f"galeria_{ronda}", label_visibility="collapsed"
+            )
+    components.html(SCRIPT_CAMARA, height=0)
+    return list(de_camara or []) + list(de_galeria or [])
+
+
+if puede_ver_registros:
+    tab_leer, tab_pendientes, tab_revisados = st.tabs(["📷 1. Leer fotos", "📄 2. Registros", "✅ 3. Revisados"])
+else:
+    (tab_leer,) = st.tabs(["📷 1. Leer fotos"])
+    tab_pendientes = tab_revisados = None
 
 # ------------------------------------------------------------ función 1: leer
 with tab_leer:
@@ -158,10 +277,7 @@ with tab_leer:
             "Sacá una foto o elegila de la galería. Que se vea el **cuadradito (DataMatrix)** y los datos "
             "impresos al lado, de cerca, con buena luz y sin reflejos. **Se lee sola al cargarla.**"
         )
-        fotos = st.file_uploader(
-            "Fotos", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, label_visibility="collapsed",
-            key=f"subida_{st.session_state['ronda']}",
-        )
+        fotos = botones_de_foto(st.session_state["ronda"])
         # Leer automáticamente las fotos nuevas (sin tener que tocar otro botón).
         nuevas = [f for f in fotos or [] if hashlib.sha1(f.getvalue()).hexdigest() not in st.session_state["leidas"]]
         if nuevas:
@@ -238,49 +354,85 @@ with tab_leer:
         st.rerun()
 
 # ------------------------------------------------------------ función 2: registros
-with tab_registros:
-    datos = registro.leer()
-    if datos.empty:
-        st.info("Todavía no hay registros guardados.")
-    else:
-        c1, c2 = st.columns(2)
-        filtro_usuario = c1.multiselect("Filtrar por usuario", sorted(datos["usuario"].unique()))
-        buscar = c2.text_input("Buscar (GTIN, serie o lote)")
-        vista = datos.iloc[::-1]  # lo más nuevo arriba
-        if filtro_usuario:
-            vista = vista[vista["usuario"].isin(filtro_usuario)]
-        if buscar:
-            b = buscar.strip().upper()
-            vista = vista[vista[["gtin", "serie", "lote"]].apply(lambda col: col.str.upper().str.contains(b, regex=False)).any(axis=1)]
-        st.write(f"{len(vista)} registro(s), lo más nuevo arriba.")
 
-        st.dataframe(
-            vista[["gtin", "serie", "lote", "vencimiento", "usuario", "fecha_foto", "estado",
-                   "fecha_registro", "elaboracion", "fuente", "origen_fecha_foto", "archivo_foto"]],
-            hide_index=True,
-            use_container_width=True,
-            column_config={
-                "gtin": "GTIN",
-                "serie": "Serie",
-                "lote": "Lote",
-                "vencimiento": "Vencimiento",
-                "usuario": "Envió",
-                "fecha_foto": "Fecha de la foto",
-                "estado": "Estado",
-                "fecha_registro": "Guardado el",
-                "elaboracion": "Elaboración",
-                "fuente": "Leído desde",
-                "origen_fecha_foto": "Origen de la fecha",
-                "archivo_foto": "Nombre de la foto",
-            },
-        )
+def filtrar(datos, clave: str):
+    """Filtros comunes: por quién lo subió (vacío = todos) y buscador. Lo más nuevo arriba."""
+    c1, c2 = st.columns(2)
+    quienes = c1.multiselect(
+        "Quién lo subió", sorted(u for u in datos["usuario"].unique() if u), key=f"filtro_{clave}",
+        placeholder="Todos",
+    )
+    buscar = c2.text_input("Buscar (GTIN, serie o lote)", key=f"buscar_{clave}")
+    vista = datos.iloc[::-1]
+    if quienes:
+        vista = vista[vista["usuario"].isin(quienes)]
+    if buscar:
+        b = buscar.strip().upper()
+        vista = vista[vista[["gtin", "serie", "lote"]].apply(lambda col: col.str.upper().str.contains(b, regex=False)).any(axis=1)]
+    return vista
 
-        hoy = datetime.now().strftime("%Y-%m-%d")
-        d1, d2 = st.columns(2)
-        d1.download_button(
-            "⬇️ Descargar Excel", registro.a_excel(vista), f"trazabilidad_{hoy}.xlsx",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        d2.download_button(
-            "⬇️ Descargar CSV", vista.to_csv(sep=";", index=False).encode("utf-8-sig"), f"trazabilidad_{hoy}.csv", "text/csv"
-        )
+
+def descargas(tabla, nombre: str, clave: str) -> None:
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    d1, d2 = st.columns(2)
+    d1.download_button(
+        "⬇️ Descargar Excel", registro.a_excel(tabla), f"{nombre}_{hoy}.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"xlsx_{clave}",
+    )
+    d2.download_button(
+        "⬇️ Descargar CSV", tabla.to_csv(sep=";", index=False).encode("utf-8-sig"), f"{nombre}_{hoy}.csv", "text/csv",
+        key=f"csv_{clave}",
+    )
+
+
+datos = registro.leer() if puede_ver_registros else registro.leer().iloc[0:0]
+pendientes = datos[datos["revisado_por"] == ""]
+revisados = datos[datos["revisado_por"] != ""]
+
+if puede_ver_registros:
+    with tab_pendientes:
+        st.caption("Lo que cargó todo el equipo y todavía no revisó una farmacéutica. Lo más nuevo arriba.")
+        if pendientes.empty:
+            st.info("No hay registros pendientes de revisión. 🎉")
+        else:
+            vista = filtrar(pendientes, "pend")
+            st.write(f"{len(vista)} registro(s) pendiente(s).")
+            tabla = vista[list(COLUMNAS_REGISTRO)].rename(columns=COLUMNAS_REGISTRO)
+            tabla.insert(0, "Revisado", False)
+            st.write(f"**{usuario['nombre']}**, tildá los que ya viste y confirmaste, y tocá el botón para pasarlos a **Revisados**.")
+            editada = st.data_editor(
+                tabla,
+                hide_index=True,
+                use_container_width=True,
+                disabled=[c for c in tabla.columns if c != "Revisado"],
+                column_config={"Revisado": st.column_config.CheckboxColumn("✔ Revisado", help="Visto y guardado por la farmacéutica")},
+                key="editor_pendientes",
+            )
+            tildados = editada[editada["Revisado"]]
+            if st.button(
+                f"✅ Pasar {len(tildados)} a Revisados", type="primary", disabled=tildados.empty, key="pasar_revisados"
+            ):
+                n = registro.marcar_revisados(list(zip(tildados["GTIN"], tildados["Serie"])), usuario["nombre"])
+                st.session_state.pop("editor_pendientes", None)
+                st.toast(f"{n} registro(s) pasaron a Revisados ✅")
+                st.rerun()
+            descargas(tabla.drop(columns="Revisado"), "trazabilidad_pendientes", "pend")
+
+    with tab_revisados:
+        st.caption("Registros que una farmacéutica ya vio y dio por buenos.")
+        if revisados.empty:
+            st.info("Todavía no hay registros revisados.")
+        else:
+            vista = filtrar(revisados, "rev")
+            st.write(f"{len(vista)} registro(s) revisado(s).")
+            columnas = {**COLUMNAS_REGISTRO, "revisado_por": "Revisado por", "revisado_el": "Revisado el"}
+            tabla = vista[list(columnas)].rename(columns=columnas)
+            st.dataframe(tabla, hide_index=True, use_container_width=True)
+            descargas(tabla, "trazabilidad_revisados", "rev")
+            if True:
+                with st.expander("¿Tildaste uno por error? Volverlo a pendientes"):
+                    opciones = {f"{r.gtin} · serie {r.serie} · revisado por {r.revisado_por}": (r.gtin, r.serie) for r in vista.itertuples()}
+                    elegido = st.selectbox("Registro", list(opciones), key="volver_pend")
+                    if st.button("↩️ Volver a pendientes", key="btn_volver"):
+                        registro.desmarcar_revisado(*opciones[elegido])
+                        st.rerun()

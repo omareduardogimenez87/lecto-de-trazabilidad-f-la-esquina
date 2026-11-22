@@ -33,6 +33,8 @@ COLUMNAS = [
     "estado",  # Leído del DataMatrix / Revisado por el usuario / Corregido a mano
     "gtin_valido",
     "avisos",
+    "revisado_por",  # farmacéutica que lo vio y lo dio por bueno (vacío = pendiente)
+    "revisado_el",
 ]
 
 FORMATO_FECHA = "%d/%m/%Y %H:%M:%S"
@@ -42,7 +44,45 @@ def leer(archivo: Path = ARCHIVO) -> pd.DataFrame:
     """Devuelve todos los registros guardados (o una tabla vacía)."""
     if not archivo.exists():
         return pd.DataFrame(columns=COLUMNAS)
-    return pd.read_csv(archivo, sep=";", encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    df = pd.read_csv(archivo, sep=";", encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    # Los archivos de versiones anteriores no tienen las columnas nuevas: se agregan vacías.
+    return df.reindex(columns=COLUMNAS, fill_value="")
+
+
+def _escribir(df: pd.DataFrame, archivo: Path) -> None:
+    archivo.parent.mkdir(parents=True, exist_ok=True)
+    df.reindex(columns=COLUMNAS, fill_value="").to_csv(archivo, sep=";", index=False, encoding="utf-8-sig")
+
+
+def _migrar(archivo: Path) -> None:
+    """Si el archivo es de una versión anterior (otras columnas), lo pasa al formato actual."""
+    if not archivo.exists():
+        return
+    with open(archivo, encoding="utf-8-sig") as f:
+        encabezado = f.readline().strip().split(";")
+    if encabezado != COLUMNAS:
+        _escribir(leer(archivo), archivo)
+
+
+def marcar_revisados(claves: list[tuple[str, str]], farmaceutica: str, archivo: Path = ARCHIVO) -> int:
+    """Marca registros (GTIN + serie) como vistos y aprobados por una farmacéutica."""
+    df = leer(archivo)
+    elegidos = pd.Series(False, index=df.index)
+    for gtin, serie in claves:
+        elegidos |= (df["gtin"] == gtin) & (df["serie"] == serie)
+    elegidos &= df["revisado_por"] == ""
+    df.loc[elegidos, "revisado_por"] = farmaceutica
+    df.loc[elegidos, "revisado_el"] = datetime.now().strftime(FORMATO_FECHA)
+    _escribir(df, archivo)
+    return int(elegidos.sum())
+
+
+def desmarcar_revisado(gtin: str, serie: str, archivo: Path = ARCHIVO) -> None:
+    """Vuelve un registro a pendientes (por si se tildó por error)."""
+    df = leer(archivo)
+    fila = (df["gtin"] == gtin) & (df["serie"] == serie)
+    df.loc[fila, ["revisado_por", "revisado_el"]] = ""
+    _escribir(df, archivo)
 
 
 def ya_registrado(gtin: str, serie: str, archivo: Path = ARCHIVO) -> bool:
@@ -66,13 +106,14 @@ def reemplazar(fila: dict, archivo: Path = ARCHIVO) -> None:
     """Borra el registro anterior de esa unidad (GTIN + serie) y guarda el nuevo."""
     df = leer(archivo)
     df = df[~((df["gtin"] == fila["gtin"]) & (df["serie"] == fila["serie"]))]
-    df.reindex(columns=COLUMNAS).to_csv(archivo, sep=";", index=False, encoding="utf-8-sig")
+    _escribir(df, archivo)
     guardar([fila], archivo)
 
 
 def guardar(filas: list[dict], archivo: Path = ARCHIVO) -> int:
     """Agrega filas al final del CSV. Devuelve cuántas guardó."""
     archivo.parent.mkdir(parents=True, exist_ok=True)
+    _migrar(archivo)
     nuevo = not archivo.exists()
     ahora = datetime.now().strftime(FORMATO_FECHA)
     with open(archivo, "a", newline="", encoding="utf-8-sig" if nuevo else "utf-8") as f:

@@ -1,11 +1,11 @@
 {
   "sucursal": "Mitre",
   "usuarios": [
-    {"nombre": "Fernanda", "rol": "Farmacéutica"},
     {"nombre": "Claudia", "rol": "Farmacéutica"},
-    {"nombre": "Omar", "rol": "Mostrador"},
-    {"nombre": "Yessi", "rol": "Mostrador"},
+    {"nombre": "Fernanda", "rol": "Farmacéutica"},
     {"nombre": "Silvia", "rol": "Mostrador"},
-    {"nombre": "Maxi", "rol": "Mostrador"}
+    {"nombre": "Yessi", "rol": "Mostrador"},
+    {"nombre": "Maxi", "rol": "Mostrador"},
+    {"nombre": "Omar", "rol": "Mostrador"}
   ]
 }
