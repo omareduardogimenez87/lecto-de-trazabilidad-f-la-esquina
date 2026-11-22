@@ -45,7 +45,9 @@ Se hace una sola vez, en la computadora de la farmacia que va a hacer de "servid
    ```
    Se abre sola en el navegador (`http://localhost:8501`). Para cerrarla, en la ventana negra apretar `Ctrl + C`.
 
-> Si Windows no encuentra Tesseract, agregá `C:\Program Files\Tesseract-OCR` a la variable PATH, o avisame y lo dejamos configurado en el código.
+> La app busca Tesseract sola en `C:\Program Files\Tesseract-OCR`. Si lo instalaste en otra carpeta, verás un aviso amarillo en el menú de la izquierda.
+>
+> La primera vez que se abre, Windows puede preguntar si permitís el acceso a la red a Python: elegí **Redes privadas** y **Permitir**. Eso hace falta para abrirla desde el celular.
 
 ### Usarla desde el celular
 Con la app abierta en la PC, la terminal muestra una línea **Network URL** (por ejemplo `http://192.168.0.15:8501`). Desde un celular conectado **al mismo WiFi** de la farmacia, abrir esa dirección en el navegador. Ahí "Subir fotos" ofrece la cámara o la galería.

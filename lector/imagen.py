@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
 from datetime import datetime
 
 import numpy as np
@@ -19,6 +21,19 @@ try:
     import pytesseract
 except ImportError:  # pragma: no cover
     pytesseract = None
+
+# En Windows, el instalador de Tesseract no lo agrega al PATH. Si no se
+# encuentra, lo buscamos en las carpetas donde se instala por defecto.
+if pytesseract is not None and shutil.which("tesseract") is None:
+    for _ruta in (
+        os.environ.get("TESSERACT_CMD", ""),
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Programs\Tesseract-OCR\tesseract.exe"),
+    ):
+        if _ruta and os.path.isfile(_ruta):
+            pytesseract.pytesseract.tesseract_cmd = _ruta
+            break
 
 
 def abrir(archivo) -> Image.Image:
