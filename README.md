@@ -8,7 +8,7 @@ La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y
 
 ### 📷 1. Leer fotos
 1. Tocás tu nombre arriba (queda marcado).
-2. Tocás **📷 Sacar foto** (abre directo la cámara del celular) o **🖼️ Elegir de la galería**. **Se lee sola**, no hace falta tocar otro botón. En la PC, los dos botones abren la ventana para elegir un archivo.
+2. Tocás **📷 Sacar foto** (abre directo la cámara del celular) o **🖼️ Galería** (están uno al lado del otro). **Se lee sola**, no hace falta tocar otro botón. En la PC, los dos botones abren la ventana para elegir un archivo.
 3. La app busca el **DataMatrix** (el cuadradito). Si lo lee, el dato es exacto. Si no puede, lee el **texto impreso** al lado (OCR).
 4. Cada envase aparece en una tarjeta con la foto, los datos y el botón **Guardar** justo debajo:
 
@@ -21,8 +21,8 @@ La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y
 5. Al guardar, la tarjeta y la foto se borran y la pantalla queda lista para el próximo envase.
 6. Si ese envase (mismo GTIN + serie) **ya estaba cargado**, avisa quién y cuándo lo registró, y da dos opciones: **Reemplazar con estos datos** o **Descartar y dejar el anterior**.
 
-### 📄 2. Registros y ✅ 3. Revisados (solo farmacéuticas)
-Estas pestañas solo aparecen para **Fernanda y Claudia**, y piden un **PIN**. La primera vez que cada una toca su nombre y abre "ingresá tu PIN", la app le pide que lo cree (4 a 6 números). El PIN no queda escrito en ningún lado: se guarda una huella en `registros/claves.json`. Si alguna se olvida el PIN, se borra ese archivo y cada una crea uno nuevo.
+### 📄 2. Registros y ✅ 3. Revisados (farmacéuticas)
+Estas pestañas solo aparecen cuando se toca el nombre de **Claudia o Fernanda**. Los de mostrador solo ven "Leer fotos".
 
 - **Registros**: lo que cargó todo el equipo y falta revisar. Por defecto se ve todo, y se puede filtrar por quién lo subió o buscar por GTIN, serie o lote. La farmacéutica tilda **✔ Revisado** en los que ya vio y toca **Pasar a Revisados**.
 - **Revisados**: lo que ya revisó una farmacéutica, con quién y cuándo. Si se tildó uno por error, se puede volver a pendientes.
