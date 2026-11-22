@@ -8,7 +8,7 @@ La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y
 
 ### 📷 1. Leer fotos
 1. Tocás tu nombre arriba (queda marcado).
-2. Sacás la foto con el celular o la elegís de la galería. **Se lee sola**, no hace falta tocar otro botón.
+2. Tocás **📷 Sacar foto** (abre directo la cámara del celular) o **🖼️ Elegir de la galería**. **Se lee sola**, no hace falta tocar otro botón. En la PC, los dos botones abren la ventana para elegir un archivo.
 3. La app busca el **DataMatrix** (el cuadradito). Si lo lee, el dato es exacto. Si no puede, lee el **texto impreso** al lado (OCR).
 4. Cada envase aparece en una tarjeta con la foto, los datos y el botón **Guardar** justo debajo:
 

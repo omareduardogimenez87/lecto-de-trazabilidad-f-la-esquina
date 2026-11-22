@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from lector import registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
@@ -142,6 +143,78 @@ def guardar_item(it: dict) -> None:
     cerrar_tarjeta(it, ("success", f"✅ Guardado: GTIN {fila['gtin']} · serie {fila['serie']}. Ya podés cargar la próxima foto."))
 
 
+TIPOS_FOTO = ["jpg", "jpeg", "png", "webp"]
+
+# Estilo de los dos botones grandes (📷 cámara y 🖼️ galería), en lugar del "Subir" de Streamlit.
+ESTILO_BOTONES = """
+<style>
+.st-key-camara [data-testid="stFileUploaderDropzoneInstructions"],
+.st-key-camara [data-testid="stFileChip"],
+.st-key-camara [data-testid="stFileChips"] > div:not(:has(button[aria-label="Add files"])) { display: none !important; }
+.st-key-camara section { padding: 0; background: transparent; border: none; display: block; }
+.st-key-camara section > span, .st-key-camara [data-testid="stFileChips"], .st-key-camara [data-testid="stFileChips"] > *, .st-key-camara section button {
+  display: block; width: 100%; max-width: none;
+}
+.st-key-camara section button {
+  min-height: 4.5rem; font-size: 0 !important; border-radius: 0.75rem; border: 1px solid rgba(49, 51, 63, 0.2);
+}
+.st-key-camara section button * { display: none !important; }
+.st-key-galeria [data-testid="stFileUploaderDropzoneInstructions"],
+.st-key-galeria [data-testid="stFileChip"],
+.st-key-galeria [data-testid="stFileChips"] > div:not(:has(button[aria-label="Add files"])) { display: none !important; }
+.st-key-galeria section { padding: 0; background: transparent; border: none; display: block; }
+.st-key-galeria section > span, .st-key-galeria [data-testid="stFileChips"], .st-key-galeria [data-testid="stFileChips"] > *, .st-key-galeria section button {
+  display: block; width: 100%; max-width: none;
+}
+.st-key-galeria section button {
+  min-height: 4.5rem; font-size: 0 !important; border-radius: 0.75rem; border: 1px solid rgba(49, 51, 63, 0.2);
+}
+.st-key-galeria section button * { display: none !important; }
+.st-key-camara section button::before { content: "📷  Sacar foto"; font-size: 1.25rem; }
+.st-key-galeria section button::before { content: "🖼️  Elegir de la galería"; font-size: 1.25rem; }
+.st-key-camara section button { background: #c62f3f; color: white; border-color: #c62f3f; }
+</style>
+"""
+
+# En el celular, "capture" hace que el botón abra directo la cámara trasera.
+# Streamlit no tiene esa opción, así que se la agregamos al botón con un poco de JavaScript.
+# (Se usa la cámara del propio celular: funciona aunque la app se abra por http en el WiFi.)
+SCRIPT_CAMARA = """
+<script>
+const doc = window.parent.document;
+function ajustar() {
+  doc.querySelectorAll('.st-key-camara input[type=file]').forEach(i => {
+    if (i.getAttribute('capture') !== 'environment') i.setAttribute('capture', 'environment');
+    if (i.getAttribute('accept') !== 'image/*') i.setAttribute('accept', 'image/*');
+  });
+  doc.querySelectorAll('.st-key-galeria input[type=file]').forEach(i => {
+    if (i.getAttribute('accept') !== 'image/*') i.setAttribute('accept', 'image/*');
+  });
+}
+ajustar();
+new MutationObserver(ajustar).observe(doc.body, {childList: true, subtree: true});
+</script>
+"""
+
+
+def botones_de_foto(ronda: int) -> list:
+    """Dos botones grandes: sacar foto con la cámara o elegir de la galería."""
+    st.markdown(ESTILO_BOTONES, unsafe_allow_html=True)
+    col_cam, col_gal = st.columns(2)
+    with col_cam:
+        with st.container(key="camara"):
+            de_camara = st.file_uploader(
+                "Cámara", type=TIPOS_FOTO, accept_multiple_files=True, key=f"camara_{ronda}", label_visibility="collapsed"
+            )
+    with col_gal:
+        with st.container(key="galeria"):
+            de_galeria = st.file_uploader(
+                "Galería", type=TIPOS_FOTO, accept_multiple_files=True, key=f"galeria_{ronda}", label_visibility="collapsed"
+            )
+    components.html(SCRIPT_CAMARA, height=0)
+    return list(de_camara or []) + list(de_galeria or [])
+
+
 tab_leer, tab_registros = st.tabs(["📷 1. Leer fotos", "📄 2. Registros"])
 
 # ------------------------------------------------------------ función 1: leer
@@ -158,10 +231,7 @@ with tab_leer:
             "Sacá una foto o elegila de la galería. Que se vea el **cuadradito (DataMatrix)** y los datos "
             "impresos al lado, de cerca, con buena luz y sin reflejos. **Se lee sola al cargarla.**"
         )
-        fotos = st.file_uploader(
-            "Fotos", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, label_visibility="collapsed",
-            key=f"subida_{st.session_state['ronda']}",
-        )
+        fotos = botones_de_foto(st.session_state["ronda"])
         # Leer automáticamente las fotos nuevas (sin tener que tocar otro botón).
         nuevas = [f for f in fotos or [] if hashlib.sha1(f.getvalue()).hexdigest() not in st.session_state["leidas"]]
         if nuevas:
