@@ -1,0 +1,9 @@
+# Fotos y registros reales: no se suben (pueden tener datos sensibles)
+*.jpg
+*.jpeg
+*.png
+*.heic
+registros/
+*.csv
+*.xlsx
+.env
