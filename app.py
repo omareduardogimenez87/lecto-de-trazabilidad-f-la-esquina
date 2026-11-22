@@ -15,7 +15,6 @@ import hashlib
 import io
 import json
 import uuid
-from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
@@ -47,6 +46,52 @@ st.set_page_config(page_title="Lector de trazabilidad", page_icon="💊", layout
 st.title("💊 Lector de trazabilidad")
 st.caption(f"Farmacia La Esquina · Sucursal {SUCURSAL}")
 
+
+
+def secretos() -> dict:
+    """Lee la configuración secreta de la nube (.streamlit/secrets.toml o el panel de
+    Streamlit Cloud). En la PC normalmente no existe, y entonces devuelve {}."""
+    try:
+        return st.secrets.to_dict()
+    except Exception:
+        return {}
+
+
+@st.cache_resource(show_spinner="Conectando con la planilla de registros…")
+def abrir_planilla(cuenta: tuple, url: str):
+    import gspread
+
+    return gspread.service_account_from_dict(dict(cuenta)).open_by_url(url).sheet1
+
+
+SECRETOS = secretos()
+
+# App con Android (en la nube): si hay una clave configurada, se pide una vez.
+CLAVE = str(SECRETOS.get("clave_acceso", "") or "")
+if CLAVE and not st.session_state.get("clave_ok"):
+    escrita = st.text_input("Clave de acceso", type="password")
+    if escrita and escrita == CLAVE:
+        st.session_state["clave_ok"] = True
+        st.rerun()
+    if escrita:
+        st.error("Clave incorrecta.")
+    st.stop()
+
+# App con Android: los registros van a Google Sheets. Sin planilla configurada
+# (app con Windows), se guardan en registros/registros.csv como siempre.
+# La cuenta de servicio de Google se pega tal cual (el archivo .json entero) en
+# `cuenta_google`, o como tabla [gcp_service_account].
+CUENTA = SECRETOS.get("gcp_service_account") or SECRETOS.get("cuenta_google")
+URL_PLANILLA = SECRETOS.get("planilla_url") or SECRETOS.get("planilla", {}).get("url", "")
+if CUENTA and URL_PLANILLA:
+    try:
+        if isinstance(CUENTA, str):
+            CUENTA = json.loads(CUENTA)
+        registro.usar_planilla(abrir_planilla(tuple(sorted(CUENTA.items())), URL_PLANILLA))
+    except Exception as e:
+        st.error(f"No se pudo abrir la planilla de registros de Google: {e}")
+        st.stop()
+
 st.session_state.setdefault("items", [])
 st.session_state.setdefault("ronda", 0)  # cambia después de guardar, para vaciar la carga de fotos
 st.session_state.setdefault("avisos", [])  # mensajes para mostrar después de guardar
@@ -69,7 +114,7 @@ def procesar(contenido: bytes, nombre_archivo: str) -> list[dict]:
     img = abrir(io.BytesIO(contenido))
     fecha, origen = fecha_de_la_foto(img, nombre_archivo)
     if fecha is None:
-        fecha, origen = datetime.now(), "fecha de carga (la foto no traía fecha)"
+        fecha, origen = registro.ahora(), "fecha de carga (la foto no traía fecha)"
     calidad = medir(img)
     items = []
     for lectura in analizar(img):
@@ -353,7 +398,7 @@ def filtrar(datos, clave: str):
 
 
 def descargas(tabla, nombre: str, clave: str) -> None:
-    hoy = datetime.now().strftime("%Y-%m-%d")
+    hoy = registro.ahora().strftime("%Y-%m-%d")
     d1, d2 = st.columns(2)
     d1.download_button(
         "⬇️ Descargar Excel", registro.a_excel(tabla), f"{nombre}_{hoy}.xlsx",

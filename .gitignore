@@ -12,3 +12,4 @@ registros/
 __pycache__/
 .pytest_cache/
 .venv/
+.streamlit/secrets.toml
