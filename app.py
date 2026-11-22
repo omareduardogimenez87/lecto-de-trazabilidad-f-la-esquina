@@ -44,6 +44,8 @@ with st.sidebar:
         st.warning("El lector de texto (Tesseract) no está instalado: solo se van a leer los DataMatrix. Mirá el README.")
 
 st.session_state.setdefault("items", [])
+st.session_state.setdefault("ronda", 0)  # cambia después de guardar, para vaciar la carga de fotos
+st.session_state.setdefault("avisos", [])  # mensajes para mostrar después de guardar
 
 
 def procesar(contenido: bytes, nombre_archivo: str) -> list[dict]:
@@ -92,12 +94,17 @@ tab_leer, tab_registros = st.tabs(["📷 1. Leer fotos", "📄 2. Registros"])
 with tab_leer:
     if not usuario:
         st.info("👈 Primero elegí tu nombre en el menú de la izquierda.")
+    # Mensajes del último guardado (se muestran una vez y se borran).
+    for tipo, texto in st.session_state["avisos"]:
+        getattr(st, tipo)(texto)
+    st.session_state["avisos"] = []
     st.write(
         "Sacá una foto o elegila de la galería. Que se vea el **cuadradito (DataMatrix)** y los datos "
         "impresos al lado, de cerca, con buena luz y sin reflejos."
     )
     fotos = st.file_uploader(
-        "Fotos", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, label_visibility="collapsed", key="subida"
+        "Fotos", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, label_visibility="collapsed",
+        key=f"subida_{st.session_state['ronda']}",
     )
     if st.button("🔎 Leer códigos", type="primary", disabled=not fotos or not usuario):
         nuevos = []
@@ -186,14 +193,23 @@ with tab_leer:
                 )
             )
         guardados = registro.guardar(filas)
-        st.session_state["items"] = pendientes
+        avisos = []
         if guardados:
-            st.success(f"Se guardaron {guardados} registro(s). Los podés ver en la pestaña **Registros**.")
+            avisos.append(("success", f"✅ Se guardaron {guardados} registro(s). Los podés ver en la pestaña **Registros**. Ya podés cargar la próxima foto."))
         if duplicados:
-            st.warning("Ya estaban registrados y no se volvieron a guardar: " + ", ".join(duplicados))
+            avisos.append(("warning", "Ya estaban registrados y no se volvieron a guardar: " + ", ".join(duplicados)))
         if pendientes:
-            st.info(f"Quedaron {len(pendientes)} envase(s) sin confirmar en la lista.")
-        st.button("Seguir")
+            avisos.append(("info", f"Quedaron {len(pendientes)} envase(s) sin confirmar: siguen abajo para que los revises."))
+        # Dejar la pantalla limpia para la próxima: se vacía la carga de fotos
+        # y solo quedan los envases que todavía no se confirmaron.
+        for it in items:
+            if it not in pendientes:
+                for clave in [f"{c}_{it['id']}" for c, _ in CAMPOS] + [f"ok_{it['id']}", f"otra_{it['id']}"]:
+                    st.session_state.pop(clave, None)
+        st.session_state["items"] = pendientes
+        st.session_state["avisos"] = avisos
+        st.session_state["ronda"] += 1
+        st.rerun()
 
 # ------------------------------------------------------------ función 2: registros
 with tab_registros:
