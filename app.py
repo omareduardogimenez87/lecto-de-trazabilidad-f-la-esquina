@@ -53,7 +53,8 @@ st.session_state.setdefault("avisos", [])  # mensajes para mostrar después de g
 st.session_state.setdefault("leidas", set())  # huellas de las fotos ya leídas en esta ronda
 
 # ------------------------------------------------------------ ¿quién usa la app?
-nombre = st.pills("¿Quién sos? Tocá tu nombre", list(USUARIOS),  # en el orden de usuarios.json selection_mode="single", key="usuario")
+# Los nombres salen en el orden de usuarios.json.
+nombre = st.pills("¿Quién sos? Tocá tu nombre", list(USUARIOS), selection_mode="single", key="usuario")
 usuario = USUARIOS.get(nombre)
 es_farmaceutica = bool(usuario and usuario["rol"].lower().startswith("farmac"))
 
