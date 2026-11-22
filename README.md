@@ -7,18 +7,19 @@ La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y
 ## Qué hace (dos funciones)
 
 ### 📷 1. Leer fotos
-1. Elegís tu nombre en el menú de la izquierda.
-2. Sacás la foto con el celular o la elegís de la galería (se pueden subir varias juntas).
+1. Tocás tu nombre arriba (queda marcado).
+2. Sacás la foto con el celular o la elegís de la galería. **Se lee sola**, no hace falta tocar otro botón.
 3. La app busca el **DataMatrix** (el cuadradito). Si lo lee, el dato es exacto. Si no puede, lee el **texto impreso** al lado (OCR).
-4. Cada envase aparece en una tarjeta con la foto y los datos, y uno de estos estados:
+4. Cada envase aparece en una tarjeta con la foto, los datos y el botón **Guardar** justo debajo:
 
 | Estado | Qué significa | Qué hacer |
 |---|---|---|
-| ✅ Lista | Se leyó del DataMatrix | Guardar |
-| ⚠️ Revisar | Se leyó del texto impreso y los datos cierran | Comparar con el envase, corregir si hace falta, tildar "Los datos coinciden" y guardar |
-| ❌ Sacar otra foto | Foto movida/oscura, el GTIN no cierra o falta la serie | Subir otra foto en la misma tarjeta (o corregir a mano mirando el envase) |
+| ✅ Lista | Se leyó del DataMatrix | Tocar **Guardar** |
+| ⚠️ Revisar | Se leyó del texto impreso y los datos cierran | Comparar con el envase, corregir si hace falta y tocar **Coincide con el envase: guardar** |
+| ❌ Sacar otra foto | Foto movida/oscura, el GTIN no cierra o falta la serie | Subir otra foto en la misma tarjeta (o corregir a mano mirando el envase). No deja guardar hasta que el GTIN cierre y haya serie |
 
-5. Tocás **Guardar los confirmados**. Si un envase (mismo GTIN + serie) ya estaba registrado, avisa y no lo duplica.
+5. Al guardar, la tarjeta y la foto se borran y la pantalla queda lista para el próximo envase.
+6. Si ese envase (mismo GTIN + serie) **ya estaba cargado**, avisa quién y cuándo lo registró, y da dos opciones: **Reemplazar con estos datos** o **Descartar y dejar el anterior**.
 
 ### 📄 2. Registros
 Tabla con todo lo guardado (lo más nuevo arriba), con filtro por usuario y buscador. Botones para descargar en **Excel** o **CSV**.

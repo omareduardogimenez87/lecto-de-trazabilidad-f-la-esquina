@@ -2,14 +2,16 @@
 
 Para abrirla:  streamlit run app.py
 
-Función 1 (📷 Leer fotos): se sube o se saca la foto, la app lee los datos,
-avisa si la foto no sirve y pide otra, y el usuario confirma.
+Función 1 (📷 Leer fotos): se toca el nombre, se sube o se saca la foto y la
+app lee los datos sola. Avisa si la foto no sirve y pide otra. Al lado de cada
+lectura está el botón Guardar; al guardar se limpia la pantalla para la próxima.
 Función 2 (📄 Registros): queda guardado cada registro con quién envió la
 foto y la fecha. Se puede descargar en Excel. Las fotos NO se guardan.
 """
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import uuid
@@ -29,21 +31,20 @@ SUCURSAL = CONFIG.get("sucursal", "")
 CAMPOS = [("gtin", "GTIN (01)"), ("serie", "Serie (21)"), ("lote", "Lote (10)"), ("vencimiento", "Vencimiento"), ("elaboracion", "Elaboración")]
 EN_MAYUSCULAS = ("gtin", "serie", "lote")
 
-st.set_page_config(page_title="Lector de trazabilidad", page_icon="💊", layout="wide")
+st.set_page_config(page_title="Lector de trazabilidad", page_icon="💊", layout="wide", initial_sidebar_state="collapsed")
 st.title("💊 Lector de trazabilidad")
 st.caption(f"Farmacia La Esquina · Sucursal {SUCURSAL}")
 
-# ------------------------------------------------------------ ¿quién usa la app?
-with st.sidebar:
-    st.header("¿Quién sos?")
-    nombre = st.selectbox("Usuario", ["— elegí tu nombre —", *USUARIOS], key="usuario")
-    usuario = USUARIOS.get(nombre)
-    if usuario:
-        st.success(f"{usuario['nombre']} · {usuario['rol']}")
-    if not ocr_disponible():
-        st.warning("El lector de texto (Tesseract) no está instalado: solo se van a leer los DataMatrix. Mirá el README.")
-
 st.session_state.setdefault("items", [])
+st.session_state.setdefault("ronda", 0)  # cambia después de guardar, para vaciar la carga de fotos
+st.session_state.setdefault("avisos", [])  # mensajes para mostrar después de guardar
+st.session_state.setdefault("leidas", set())  # huellas de las fotos ya leídas en esta ronda
+
+# ------------------------------------------------------------ ¿quién usa la app?
+nombre = st.pills("¿Quién sos? Tocá tu nombre", list(USUARIOS), selection_mode="single", key="usuario")
+usuario = USUARIOS.get(nombre)
+if not ocr_disponible():
+    st.warning("El lector de texto (Tesseract) no está instalado: solo se van a leer los DataMatrix. Mirá el README.")
 
 
 def procesar(contenido: bytes, nombre_archivo: str) -> list[dict]:
@@ -86,38 +87,94 @@ def fue_corregido(it: dict, datos: dict) -> bool:
     return any(datos[c] != original[c] for c, _ in CAMPOS)
 
 
+def datos_de(it: dict) -> dict:
+    """Los datos tal como están ahora en la tarjeta (con las correcciones a mano)."""
+    datos = {c: st.session_state.get(f"{c}_{it['id']}", it["lectura"].get(c, "") or "").strip() for c, _ in CAMPOS}
+    for c in EN_MAYUSCULAS:
+        datos[c] = datos[c].upper()
+    return datos
+
+
+def fila_de(it: dict) -> dict:
+    """Arma la fila del registro con los datos de la tarjeta."""
+    datos = datos_de(it)
+    if fue_corregido(it, datos):
+        estado_final = "Corregido a mano"
+    elif it["estado"] == ESTADO_OK:
+        estado_final = "Leído del DataMatrix"
+    else:
+        estado_final = "Revisado por el usuario"
+    return dict(
+        **datos,
+        fecha_foto=it["fecha_foto"],
+        origen_fecha_foto=it["origen_fecha_foto"],
+        usuario=usuario["nombre"],
+        rol=usuario["rol"],
+        sucursal=SUCURSAL,
+        archivo_foto=it["archivo_foto"],
+        fuente=it["lectura"]["fuente"],
+        estado=estado_final,
+        gtin_valido=gtin_es_valido(datos["gtin"]),
+        avisos=" · ".join(it["motivos"]),
+    )
+
+
+def cerrar_tarjeta(it: dict, aviso: tuple[str, str]) -> None:
+    """Saca la tarjeta de la pantalla y deja todo listo para el próximo envase."""
+    st.session_state["avisos"].append(aviso)
+    st.session_state["items"] = [x for x in st.session_state["items"] if x["id"] != it["id"]]
+    for clave in [f"{c}_{it['id']}" for c, _ in CAMPOS] + [f"otra_{it['id']}"]:
+        st.session_state.pop(clave, None)
+    # Si no queda nada pendiente, vaciar también la carga de fotos.
+    if not st.session_state["items"]:
+        st.session_state["ronda"] += 1
+        st.session_state["leidas"] = set()
+
+
+def guardar_item(it: dict) -> None:
+    """Guarda un envase. Si ya estaba cargado, no guarda y pregunta qué hacer."""
+    fila = fila_de(it)
+    previo = registro.buscar(fila["gtin"], fila["serie"])
+    if previo:
+        it["duplicado"] = previo  # la tarjeta muestra el aviso con las opciones
+        return
+    registro.guardar([fila])
+    cerrar_tarjeta(it, ("success", f"✅ Guardado: GTIN {fila['gtin']} · serie {fila['serie']}. Ya podés cargar la próxima foto."))
+
+
 tab_leer, tab_registros = st.tabs(["📷 1. Leer fotos", "📄 2. Registros"])
 
 # ------------------------------------------------------------ función 1: leer
 with tab_leer:
+    # Mensajes del último guardado (se muestran una vez y se borran).
+    for tipo, texto in st.session_state["avisos"]:
+        getattr(st, tipo)(texto)
+    st.session_state["avisos"] = []
+
     if not usuario:
-        st.info("👈 Primero elegí tu nombre en el menú de la izquierda.")
-    st.write(
-        "Sacá una foto o elegila de la galería. Que se vea el **cuadradito (DataMatrix)** y los datos "
-        "impresos al lado, de cerca, con buena luz y sin reflejos."
-    )
-    fotos = st.file_uploader(
-        "Fotos", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, label_visibility="collapsed", key="subida"
-    )
-    if st.button("🔎 Leer códigos", type="primary", disabled=not fotos or not usuario):
-        nuevos = []
-        barra = st.progress(0.0, text="Leyendo…")
-        for n, foto in enumerate(fotos, start=1):
-            barra.progress(n / len(fotos), text=f"Leyendo {foto.name} ({n}/{len(fotos)})")
-            try:
-                nuevos += procesar(foto.getvalue(), foto.name)
-            except Exception as e:
-                st.error(f"No se pudo abrir {foto.name}: {e}")
-        barra.empty()
-        st.session_state["items"] = nuevos
+        st.info("☝️ Primero tocá tu nombre.")
+    else:
+        st.write(
+            "Sacá una foto o elegila de la galería. Que se vea el **cuadradito (DataMatrix)** y los datos "
+            "impresos al lado, de cerca, con buena luz y sin reflejos. **Se lee sola al cargarla.**"
+        )
+        fotos = st.file_uploader(
+            "Fotos", type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, label_visibility="collapsed",
+            key=f"subida_{st.session_state['ronda']}",
+        )
+        # Leer automáticamente las fotos nuevas (sin tener que tocar otro botón).
+        nuevas = [f for f in fotos or [] if hashlib.sha1(f.getvalue()).hexdigest() not in st.session_state["leidas"]]
+        if nuevas:
+            with st.spinner("Leyendo…"):
+                for foto in nuevas:
+                    contenido = foto.getvalue()
+                    st.session_state["leidas"].add(hashlib.sha1(contenido).hexdigest())
+                    try:
+                        st.session_state["items"] += procesar(contenido, foto.name)
+                    except Exception as e:
+                        st.error(f"No se pudo abrir {foto.name}: {e}")
 
-    items = st.session_state["items"]
-    if items:
-        listos = sum(it["estado"] == ESTADO_OK for it in items)
-        otra = sum(it["estado"] == ESTADO_OTRA_FOTO for it in items)
-        st.subheader("Revisá cada envase")
-        st.write(f"{len(items)} envase(s): **{listos} listos**, {len(items) - listos - otra} para revisar, **{otra} piden otra foto**.")
-
+    items = st.session_state["items"] if usuario else []
     for it in items:
         lec = it["lectura"]
         with st.container(border=True):
@@ -141,59 +198,44 @@ with tab_leer:
                     st.warning(" · ".join(it["motivos"]))
                 for (campo, titulo), col in zip(CAMPOS, st.columns(len(CAMPOS))):
                     col.text_input(titulo, value=lec.get(campo, ""), key=f"{campo}_{it['id']}")
-                gtin_actual = st.session_state.get(f"gtin_{it['id']}", "").strip()
-                if gtin_actual and not gtin_es_valido(gtin_actual):
-                    st.warning("Ese GTIN no cierra con el dígito verificador: revisá los números.")
-                st.checkbox(
-                    "Los datos coinciden con el envase",
-                    value=it["estado"] == ESTADO_OK,
-                    key=f"ok_{it['id']}",
-                    help="Marcalo cuando hayas comparado los datos con la foto o el envase.",
-                )
 
-    if items and st.button("💾 Guardar los confirmados", type="primary", disabled=not usuario):
-        duplicados, pendientes, filas = [], [], []
-        for it in items:
-            if not st.session_state.get(f"ok_{it['id']}"):
-                pendientes.append(it)
-                continue
-            datos = {campo: st.session_state.get(f"{campo}_{it['id']}", "").strip() for campo, _ in CAMPOS}
-            for campo in EN_MAYUSCULAS:
-                datos[campo] = datos[campo].upper()
-            repetido_aca = any(f["gtin"] == datos["gtin"] and f["serie"] == datos["serie"] for f in filas)
-            if repetido_aca or registro.ya_registrado(datos["gtin"], datos["serie"]):
-                duplicados.append(f"{datos['gtin']} / {datos['serie']}")
-                continue
-            if fue_corregido(it, datos):
-                estado_final = "Corregido a mano"
-            elif it["estado"] == ESTADO_OK:
-                estado_final = "Leído del DataMatrix"
-            else:
-                estado_final = "Revisado por el usuario"
-            filas.append(
-                dict(
-                    **datos,
-                    fecha_foto=it["fecha_foto"],
-                    origen_fecha_foto=it["origen_fecha_foto"],
-                    usuario=usuario["nombre"],
-                    rol=usuario["rol"],
-                    sucursal=SUCURSAL,
-                    archivo_foto=it["archivo_foto"],
-                    fuente=it["lectura"]["fuente"],
-                    estado=estado_final,
-                    gtin_valido=gtin_es_valido(datos["gtin"]),
-                    avisos=" · ".join(it["motivos"]),
-                )
-            )
-        guardados = registro.guardar(filas)
-        st.session_state["items"] = pendientes
-        if guardados:
-            st.success(f"Se guardaron {guardados} registro(s). Los podés ver en la pestaña **Registros**.")
-        if duplicados:
-            st.warning("Ya estaban registrados y no se volvieron a guardar: " + ", ".join(duplicados))
-        if pendientes:
-            st.info(f"Quedaron {len(pendientes)} envase(s) sin confirmar en la lista.")
-        st.button("Seguir")
+                datos = datos_de(it)
+                faltan = []
+                if not gtin_es_valido(datos["gtin"]):
+                    faltan.append("el GTIN no cierra con el dígito verificador" if datos["gtin"] else "falta el GTIN")
+                if not datos["serie"]:
+                    faltan.append("falta la serie")
+                if faltan:
+                    st.caption("Para guardar: " + " y ".join(faltan) + ".")
+                previo = it.get("duplicado")
+                if previo and (previo.get("gtin"), previo.get("serie")) != (datos["gtin"], datos["serie"]):
+                    previo = it.pop("duplicado")  # se corrigió el GTIN o la serie: ya no es el mismo envase
+                    previo = None
+                if previo:
+                    st.warning(
+                        f"⚠️ **Este envase ya fue cargado.** Lo registró **{previo.get('usuario') or 'alguien'}** "
+                        f"el {previo.get('fecha_registro') or '(fecha desconocida)'} "
+                        f"(lote {previo.get('lote') or '-'}, vence {previo.get('vencimiento') or '-'}). ¿Qué querés hacer?"
+                    )
+                    b1, b2 = st.columns(2)
+                    if b1.button("🔁 Reemplazar con estos datos", key=f"reemplazar_{it['id']}", use_container_width=True):
+                        registro.reemplazar(fila_de(it))
+                        cerrar_tarjeta(it, ("success", "🔁 Se reemplazó el registro anterior con los datos nuevos. Ya podés cargar la próxima foto."))
+                        st.rerun()
+                    if b2.button("🗑️ Descartar y dejar el anterior", key=f"descartar_{it['id']}", use_container_width=True):
+                        cerrar_tarjeta(it, ("info", "Se descartó esta lectura. El registro anterior quedó como estaba."))
+                        st.rerun()
+                else:
+                    etiqueta = "💾 Guardar" if it["estado"] == ESTADO_OK else "💾 Coincide con el envase: guardar"
+                    if st.button(etiqueta, type="primary", key=f"guardar_{it['id']}", disabled=bool(faltan), use_container_width=True):
+                        guardar_item(it)
+                        st.rerun()
+
+    if len(items) > 1 and st.button("🧹 Descartar todo y empezar de nuevo"):
+        st.session_state["items"] = []
+        st.session_state["ronda"] += 1
+        st.session_state["leidas"] = set()
+        st.rerun()
 
 # ------------------------------------------------------------ función 2: registros
 with tab_registros:

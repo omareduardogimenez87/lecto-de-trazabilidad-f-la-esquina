@@ -53,6 +53,23 @@ def ya_registrado(gtin: str, serie: str, archivo: Path = ARCHIVO) -> bool:
     return bool(((df["gtin"] == gtin) & (df["serie"] == serie)).any())
 
 
+def buscar(gtin: str, serie: str, archivo: Path = ARCHIVO) -> dict | None:
+    """Devuelve el registro anterior de esa unidad (GTIN + serie), si existe."""
+    if not gtin or not serie:
+        return None
+    df = leer(archivo)
+    previo = df[(df["gtin"] == gtin) & (df["serie"] == serie)]
+    return None if previo.empty else previo.iloc[-1].to_dict()
+
+
+def reemplazar(fila: dict, archivo: Path = ARCHIVO) -> None:
+    """Borra el registro anterior de esa unidad (GTIN + serie) y guarda el nuevo."""
+    df = leer(archivo)
+    df = df[~((df["gtin"] == fila["gtin"]) & (df["serie"] == fila["serie"]))]
+    df.reindex(columns=COLUMNAS).to_csv(archivo, sep=";", index=False, encoding="utf-8-sig")
+    guardar([fila], archivo)
+
+
 def guardar(filas: list[dict], archivo: Path = ARCHIVO) -> int:
     """Agrega filas al final del CSV. Devuelve cuántas guardó."""
     archivo.parent.mkdir(parents=True, exist_ok=True)
