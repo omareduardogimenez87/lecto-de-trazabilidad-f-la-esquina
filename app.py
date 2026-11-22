@@ -31,6 +31,17 @@ USUARIOS = {u["nombre"]: u for u in CONFIG["usuarios"]}
 SUCURSAL = CONFIG.get("sucursal", "")
 CAMPOS = [("gtin", "GTIN (01)"), ("serie", "Serie (21)"), ("lote", "Lote (10)"), ("vencimiento", "Vencimiento"), ("elaboracion", "Elaboración")]
 EN_MAYUSCULAS = ("gtin", "serie", "lote")
+# Columnas que se ven en Registros y salen en el Excel, con su título.
+COLUMNAS_REGISTRO = {
+    "gtin": "GTIN",
+    "serie": "Serie",
+    "lote": "Lote",
+    "vencimiento": "Vencimiento",
+    "usuario": "Envió",
+    "fecha_foto": "Fecha de la foto",
+    "estado": "Estado",
+    "fecha_registro": "Guardado el",
+}
 
 st.set_page_config(page_title="Lector de trazabilidad", page_icon="💊", layout="wide", initial_sidebar_state="collapsed")
 st.title("💊 Lector de trazabilidad")
@@ -324,33 +335,16 @@ with tab_registros:
             vista = vista[vista[["gtin", "serie", "lote"]].apply(lambda col: col.str.upper().str.contains(b, regex=False)).any(axis=1)]
         st.write(f"{len(vista)} registro(s), lo más nuevo arriba.")
 
-        st.dataframe(
-            vista[["gtin", "serie", "lote", "vencimiento", "usuario", "fecha_foto", "estado",
-                   "fecha_registro", "elaboracion", "fuente", "origen_fecha_foto", "archivo_foto"]],
-            hide_index=True,
-            use_container_width=True,
-            column_config={
-                "gtin": "GTIN",
-                "serie": "Serie",
-                "lote": "Lote",
-                "vencimiento": "Vencimiento",
-                "usuario": "Envió",
-                "fecha_foto": "Fecha de la foto",
-                "estado": "Estado",
-                "fecha_registro": "Guardado el",
-                "elaboracion": "Elaboración",
-                "fuente": "Leído desde",
-                "origen_fecha_foto": "Origen de la fecha",
-                "archivo_foto": "Nombre de la foto",
-            },
-        )
+        # Solo las columnas importantes (hasta "Guardado el"). El resto queda en registros.csv.
+        tabla = vista[list(COLUMNAS_REGISTRO)].rename(columns=COLUMNAS_REGISTRO)
+        st.dataframe(tabla, hide_index=True, use_container_width=True)
 
         hoy = datetime.now().strftime("%Y-%m-%d")
         d1, d2 = st.columns(2)
         d1.download_button(
-            "⬇️ Descargar Excel", registro.a_excel(vista), f"trazabilidad_{hoy}.xlsx",
+            "⬇️ Descargar Excel", registro.a_excel(tabla), f"trazabilidad_{hoy}.xlsx",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
         d2.download_button(
-            "⬇️ Descargar CSV", vista.to_csv(sep=";", index=False).encode("utf-8-sig"), f"trazabilidad_{hoy}.csv", "text/csv"
+            "⬇️ Descargar CSV", tabla.to_csv(sep=";", index=False).encode("utf-8-sig"), f"trazabilidad_{hoy}.csv", "text/csv"
         )
