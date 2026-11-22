@@ -447,9 +447,13 @@ def filtrar(datos, clave: str):
 
 
 def descargas(tabla, nombre: str, clave: str) -> None:
-    hoy = registro.ahora().strftime("%d-%m-%Y")
+    """Botón para bajar la tabla en Excel. El título y el nombre del archivo llevan
+    el rango de fechas de lo que se está mostrando (según "Guardado el")."""
+    rango = registro.rango_de_fechas(tabla["Guardado el"]) if "Guardado el" in tabla else ""
+    titulo = f"{nombre} {rango}".strip()
+    archivo = titulo.replace("/", "-")  # en un nombre de archivo no puede ir "/"
     st.download_button(
-        "⬇️ Descargar Excel", registro.a_excel(tabla), f"{nombre} {hoy}.xlsx",
+        "⬇️ Descargar Excel", registro.a_excel(tabla, titulo), f"{archivo}.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"xlsx_{clave}",
     )
 
