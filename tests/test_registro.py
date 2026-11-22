@@ -43,3 +43,45 @@ def test_archivo_de_version_anterior(tmp_path):
     registro.guardar([_fila()], archivo)
     df = registro.leer(archivo)
     assert len(df) == 2 and list(df.columns) == registro.COLUMNAS
+
+
+class HojaFalsa:
+    """Imita una hoja de Google Sheets (gspread) para probar sin internet."""
+
+    def __init__(self):
+        self.celdas = []
+
+    def get_all_values(self):
+        return [list(f) for f in self.celdas]
+
+    def row_values(self, n):
+        return list(self.celdas[n - 1]) if len(self.celdas) >= n else []
+
+    def clear(self):
+        self.celdas = []
+
+    def update(self, valores, rango, value_input_option=None):
+        assert rango == "A1"
+        self.celdas[: len(valores)] = [list(v) for v in valores]
+
+    def append_rows(self, filas, value_input_option=None):
+        self.celdas.extend(list(f) for f in filas)
+
+
+def test_planilla_de_google():
+    hoja = HojaFalsa()
+    registro.usar_planilla(hoja)
+    try:
+        assert registro.en_la_nube()
+        registro.guardar([_fila(), _fila(serie="B")])
+        assert hoja.celdas[0] == registro.COLUMNAS and len(hoja.celdas) == 3
+        assert registro.ya_registrado("07795312020770", "B")
+        assert registro.leer()["gtin"].iloc[0] == "07795312020770"  # no pierde el 0
+        registro.reemplazar(_fila(lote="NUEVO", usuario="Yessi"))
+        assert len(registro.leer()) == 2
+        assert registro.buscar("07795312020770", "11185T9C59E11T")["lote"] == "NUEVO"
+        assert registro.marcar_revisados([("07795312020770", "B")], "Fernanda") == 1
+        assert registro.buscar("07795312020770", "B")["revisado_por"] == "Fernanda"
+    finally:
+        registro.usar_planilla(None)
+    assert not registro.en_la_nube()

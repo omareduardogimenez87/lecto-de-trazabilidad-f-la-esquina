@@ -32,6 +32,11 @@ Cada fila guarda: fecha de registro, fecha de la foto (y de dónde salió), usua
 
 **Las fotos no se guardan**: se usan solo para leerlas y se descartan. El registro queda en `registros/registros.csv`, en la computadora donde corre la app (nunca se sube a GitHub).
 
+## Dos formas de usarla
+
+- **App con Android (en internet, sin instalar nada)**: se abre con un link desde el celular y los registros van a una planilla de Google Sheets. Paso a paso en [PUBLICAR_EN_LA_NUBE.md](PUBLICAR_EN_LA_NUBE.md).
+- **App con Windows (en una PC de la farmacia)**: se instala en la PC y los celulares entran por el WiFi local. Los registros quedan en `registros/registros.csv`. Es la guía de abajo.
+
 ## Cómo se instala (paso a paso, en Windows)
 
 Se hace una sola vez, en la computadora de la farmacia que va a hacer de "servidor".
