@@ -447,14 +447,14 @@ def filtrar(datos, clave: str):
 
 
 def descargas(tabla, nombre: str, clave: str) -> None:
-    hoy = registro.ahora().strftime("%Y-%m-%d")
+    hoy = registro.ahora().strftime("%d-%m-%Y")
     d1, d2 = st.columns(2)
     d1.download_button(
-        "⬇️ Descargar Excel", registro.a_excel(tabla), f"{nombre}_{hoy}.xlsx",
+        "⬇️ Descargar Excel", registro.a_excel(tabla), f"{nombre} {hoy}.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"xlsx_{clave}",
     )
     d2.download_button(
-        "⬇️ CSV (para otros sistemas)", tabla.to_csv(sep=";", index=False).encode("utf-8-sig"), f"{nombre}_{hoy}.csv", "text/csv",
+        "⬇️ CSV (para otros sistemas)", tabla.to_csv(sep=";", index=False).encode("utf-8-sig"), f"{nombre} {hoy}.csv", "text/csv",
         key=f"csv_{clave}",
         help="Si lo abrís con Excel, los números largos (GTIN, serie) se ven mal. Para Excel usá el otro botón.",
     )
@@ -494,7 +494,7 @@ if puede_ver_registros:
                 st.session_state.pop("editor_pendientes", None)
                 st.toast(f"{n} registro(s) pasaron a Revisados ✅")
                 st.rerun()
-            descargas(tabla.drop(columns="Revisado"), "trazabilidad_pendientes", "pend")
+            descargas(tabla.drop(columns="Revisado"), "Listado de registros sin revisar", "pend")
 
     with tab_revisados:
         st.caption("Registros que una farmacéutica ya vio y dio por buenos.")
@@ -506,7 +506,7 @@ if puede_ver_registros:
             columnas = {**COLUMNAS_REGISTRO, "revisado_por": "Revisado por", "revisado_el": "Revisado el"}
             tabla = vista[list(columnas)].rename(columns=columnas)
             st.dataframe(tabla, hide_index=True, use_container_width=True)
-            descargas(tabla, "trazabilidad_revisados", "rev")
+            descargas(tabla, "Listado de revisados", "rev")
             if True:
                 with st.expander("¿Tildaste uno por error? Volverlo a pendientes"):
                     opciones = {f"{r.gtin} · serie {r.serie} · revisado por {r.revisado_por}": (r.gtin, r.serie) for r in vista.itertuples()}
