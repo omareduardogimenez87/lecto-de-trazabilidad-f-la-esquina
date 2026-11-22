@@ -11,6 +11,7 @@ foto y la fecha. Se puede descargar en Excel. Las fotos NO se guardan.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import io
 import json
@@ -42,8 +43,43 @@ COLUMNAS_REGISTRO = {
     "fecha_registro": "Guardado el",
 }
 
-st.set_page_config(page_title="Lector de trazabilidad", page_icon="💊", layout="wide", initial_sidebar_state="collapsed")
-st.title("💊 Lector de trazabilidad")
+IMAGENES = Path(__file__).parent / "imagenes"
+ICONO = IMAGENES / "icono.png"  # la cruz de Farmacia La Esquina
+MARCA_DE_AGUA = IMAGENES / "marca_de_agua.png"  # logo "la esquina", casi transparente
+
+
+def en_base64(archivo: Path) -> str:
+    return base64.b64encode(archivo.read_bytes()).decode()
+
+
+st.set_page_config(
+    page_title="Lector de trazabilidad",
+    page_icon=str(ICONO) if ICONO.exists() else "💊",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+if MARCA_DE_AGUA.exists():
+    st.markdown(
+        f"""<style>
+        [data-testid="stAppViewContainer"] {{
+            background-image: url("data:image/png;base64,{en_base64(MARCA_DE_AGUA)}");
+            background-repeat: no-repeat;
+            background-position: center 60%;
+            background-size: min(80vw, 700px) auto;
+            background-attachment: fixed;
+        }}
+        </style>""",
+        unsafe_allow_html=True,
+    )
+if ICONO.exists():
+    st.markdown(
+        f"""<h1 style="display:flex;align-items:center;gap:.5rem;padding-bottom:0">
+        <img src="data:image/png;base64,{en_base64(ICONO)}" alt="" style="height:1.4em;width:1.4em">
+        Lector de trazabilidad</h1>""",
+        unsafe_allow_html=True,
+    )
+else:
+    st.title("💊 Lector de trazabilidad")
 st.caption(f"Farmacia La Esquina · Sucursal {SUCURSAL}")
 
 
