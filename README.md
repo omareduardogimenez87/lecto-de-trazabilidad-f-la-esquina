@@ -19,6 +19,7 @@ La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y
 | ❌ Sacar otra foto | Foto movida/oscura, el GTIN no cierra o falta la serie | Subir otra foto en la misma tarjeta (o corregir a mano mirando el envase). No deja guardar hasta que el GTIN cierre y haya serie |
 
 5. Al guardar, la tarjeta y la foto se borran y la pantalla queda lista para el próximo envase.
+   - **Varias fotos a la vez**: arriba aparece un solo botón **Guardar X foto(s)** que guarda todas las que se leyeron bien (✅ y ⚠️). Si alguna no se leyó bien (❌), un aviso dice cuáles quedan afuera y que hay que volver a sacarlas; esas quedan abajo para subir otra foto.
 6. Si ese envase (mismo GTIN + serie) **ya estaba cargado**, avisa quién y cuándo lo registró, y da dos opciones: **Reemplazar con estos datos** o **Descartar y dejar el anterior**.
 
 ### 📄 2. Registros y ✅ 3. Revisados (farmacéuticas)
