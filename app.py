@@ -58,6 +58,19 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+# Botones de nombres y pestañas más grandes y separados (pedido de Edu, 22/11/2026).
+# El violeta del seleccionado viene de primaryColor en .streamlit/config.toml.
+st.markdown(
+    """<style>
+    [data-testid="stButtonGroup"] [role="radiogroup"] { gap: .75rem !important; }
+    [data-testid="stButtonGroup"] button { padding: .55rem 1.3rem !important; min-height: 3rem; }
+    [data-testid="stButtonGroup"] button p { font-size: 1.15rem !important; }
+    [role="tablist"] { gap: .6rem !important; }
+    [data-testid="stTab"] { padding: .6rem 0 !important; }
+    [data-testid="stTab"] p { font-size: 1rem !important; }
+    </style>""",
+    unsafe_allow_html=True,
+)
 if MARCA_DE_AGUA.exists():
     st.markdown(
         f"""<style>
