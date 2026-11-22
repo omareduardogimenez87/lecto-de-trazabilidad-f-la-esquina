@@ -2,7 +2,7 @@
 
 App para Farmacia La Esquina (Sucursal Mitre) que lee los códigos de trazabilidad de los medicamentos desde una foto y los guarda en un registro, con la fecha de la foto y quién la envió. Así las farmacéuticas no tienen que copiar a mano GTIN, serie, lote y vencimiento.
 
-La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y Maxi (mostrador). La lista está en [`usuarios.json`](usuarios.json).
+La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y Maxi (mostrador). La lista está en [`usuarios.json`](usuarios.json), y los botones salen en ese mismo orden (mujeres primero y después hombres, cada grupo en orden alfabético).
 
 ## Qué hace (dos funciones)
 
