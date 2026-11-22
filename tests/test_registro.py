@@ -85,3 +85,16 @@ def test_planilla_de_google():
     finally:
         registro.usar_planilla(None)
     assert not registro.en_la_nube()
+
+
+def test_excel_guarda_numeros_largos_como_texto():
+    import io
+
+    import openpyxl
+    import pandas as pd
+
+    df = pd.DataFrame({"GTIN": ["07795312020770"], "Serie": ["130925000000"]}, dtype=str)
+    hoja = openpyxl.load_workbook(io.BytesIO(registro.a_excel(df))).active
+    for celda in hoja[2]:
+        assert celda.data_type == "s" and celda.number_format == "@"
+    assert hoja["A2"].value == "07795312020770"

@@ -234,5 +234,9 @@ def a_excel(df: pd.DataFrame) -> bytes:
         for i, col in enumerate(df.columns, start=1):
             ancho = max([len(str(col))] + [len(str(v)) for v in df[col].head(200)]) + 2
             hoja.column_dimensions[hoja.cell(row=1, column=i).column_letter].width = min(ancho, 45)
+        # Todo como texto: así Excel no muestra el GTIN o la serie como 7,79531E+12 ni borra el 0 de adelante.
+        for fila in hoja.iter_rows(min_row=2):
+            for celda in fila:
+                celda.number_format = "@"
         hoja.freeze_panes = "A2"
     return buffer.getvalue()
