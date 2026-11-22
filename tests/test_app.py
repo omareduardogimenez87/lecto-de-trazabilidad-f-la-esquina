@@ -28,3 +28,15 @@ def test_avisa_si_la_cuenta_de_google_esta_mal():
     at.secrets["cuenta_google"] = "esto no es json"
     at.run()
     assert not at.exception and at.error and "planilla" in at.error[0].value
+
+
+def test_registros_sin_columna_estado(tmp_path, monkeypatch):
+    from lector import registro
+
+    monkeypatch.setattr(registro, "ARCHIVO", tmp_path / "registros.csv")
+    registro.guardar([dict(gtin="07795312020770", serie="A1", lote="L", usuario="Omar", estado="Leído del DataMatrix")])
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.pills[0].set_value("Claudia").run()
+    assert not at.exception
+    columnas = list(at.tabs[1].dataframe[0].value.columns)
+    assert "GTIN" in columnas and "Estado" not in columnas

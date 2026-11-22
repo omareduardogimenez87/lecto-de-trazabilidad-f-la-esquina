@@ -225,14 +225,51 @@ def guardar(filas: list[dict], archivo=None) -> int:
     return len(filas)
 
 
-def a_excel(df: pd.DataFrame) -> bytes:
-    """Convierte la tabla a un archivo Excel (.xlsx) en memoria, para descargar."""
+DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+def rango_de_fechas(fechas) -> str:
+    """Ej.: 'desde el domingo 22/11 al viernes 27/11' (o 'del domingo 22/11' si es un solo día).
+    `fechas` son textos con el formato de FORMATO_FECHA; los que no se entienden se ignoran."""
+    dias = pd.to_datetime(pd.Series(list(fechas), dtype=str), format=FORMATO_FECHA, errors="coerce").dropna()
+    if dias.empty:
+        return ""
+    desde, hasta = dias.min(), dias.max()
+    texto = lambda d: f"{DIAS[d.weekday()]} {d:%d/%m}"
+    if desde.date() == hasta.date():
+        return f"del {texto(desde)}"
+    return f"desde el {texto(desde)} al {texto(hasta)}"
+
+
+VIOLETA = "8B5A9E"  # el mismo violeta de la app (.streamlit/config.toml)
+
+
+def a_excel(df: pd.DataFrame, titulo: str = "") -> bytes:
+    """Convierte la tabla a un archivo Excel (.xlsx) en memoria, para descargar.
+    Si hay título, va en la primera fila, destacado en violeta, y la tabla empieza en la fila 3."""
+    from openpyxl.styles import Alignment, Font, PatternFill
+
     buffer = io.BytesIO()
+    inicio = 2 if titulo else 0  # filas que quedan arriba de la tabla
     with pd.ExcelWriter(buffer, engine="openpyxl") as xl:
-        df.to_excel(xl, index=False, sheet_name="Registros")
+        df.to_excel(xl, index=False, sheet_name="Registros", startrow=inicio)
         hoja = xl.sheets["Registros"]
         for i, col in enumerate(df.columns, start=1):
             ancho = max([len(str(col))] + [len(str(v)) for v in df[col].head(200)]) + 2
             hoja.column_dimensions[hoja.cell(row=1, column=i).column_letter].width = min(ancho, 45)
-        hoja.freeze_panes = "A2"
+        # Todo como texto: así Excel no muestra el GTIN o la serie como 7,79531E+12 ni borra el 0 de adelante.
+        for fila in hoja.iter_rows(min_row=inicio + 2):
+            for celda in fila:
+                celda.number_format = "@"
+        if titulo:
+            ultima = max(len(df.columns), 1)
+            hoja.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ultima)
+            celda = hoja.cell(row=1, column=1, value=titulo)
+            celda.font = Font(size=16, bold=True, color="FFFFFF")
+            celda.fill = PatternFill("solid", fgColor=VIOLETA)
+            celda.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+            hoja.row_dimensions[1].height = 30
+            for c in range(1, len(df.columns) + 1):  # títulos de columna en violeta clarito
+                hoja.cell(row=inicio + 1, column=c).fill = PatternFill("solid", fgColor="E9DDEE")
+        hoja.freeze_panes = hoja.cell(row=inicio + 2, column=1)
     return buffer.getvalue()

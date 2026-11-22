@@ -85,3 +85,35 @@ def test_planilla_de_google():
     finally:
         registro.usar_planilla(None)
     assert not registro.en_la_nube()
+
+
+def test_excel_guarda_numeros_largos_como_texto():
+    import io
+
+    import openpyxl
+    import pandas as pd
+
+    df = pd.DataFrame({"GTIN": ["07795312020770"], "Serie": ["130925000000"]}, dtype=str)
+    hoja = openpyxl.load_workbook(io.BytesIO(registro.a_excel(df))).active
+    for celda in hoja[2]:
+        assert celda.data_type == "s" and celda.number_format == "@"
+    assert hoja["A2"].value == "07795312020770"
+
+
+def test_rango_de_fechas():
+    assert registro.rango_de_fechas(["27/11/2026 10:00:00", "22/11/2026 09:00:00"]) == "desde el domingo 22/11 al viernes 27/11"
+    assert registro.rango_de_fechas(["22/11/2026 09:00:00", "22/11/2026 18:00:00"]) == "del domingo 22/11"
+    assert registro.rango_de_fechas(["", "cualquier cosa"]) == ""
+
+
+def test_excel_con_titulo():
+    import io
+
+    import openpyxl
+    import pandas as pd
+
+    df = pd.DataFrame({"GTIN": ["07795312020770"], "Serie": ["A1"]}, dtype=str)
+    hoja = openpyxl.load_workbook(io.BytesIO(registro.a_excel(df, "Listado de revisados del domingo 22/11"))).active
+    assert hoja["A1"].value == "Listado de revisados del domingo 22/11"
+    assert hoja["A1"].font.size == 16 and hoja["A1"].fill.fgColor.rgb.endswith("8B5A9E")
+    assert hoja["A3"].value == "GTIN" and hoja["A4"].value == "07795312020770" and hoja["A4"].number_format == "@"

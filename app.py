@@ -58,6 +58,19 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+# Botones de nombres y pestañas más grandes y separados (pedido de Edu, 22/11/2026).
+# El violeta del seleccionado viene de primaryColor en .streamlit/config.toml.
+st.markdown(
+    """<style>
+    [data-testid="stButtonGroup"] [role="radiogroup"] { gap: .75rem !important; }
+    [data-testid="stButtonGroup"] button { padding: .55rem 1.3rem !important; min-height: 3rem; }
+    [data-testid="stButtonGroup"] button p { font-size: 1.15rem !important; }
+    [role="tablist"] { gap: .6rem !important; }
+    [data-testid="stTab"] { padding: .6rem 0 !important; }
+    [data-testid="stTab"] p { font-size: 1rem !important; }
+    </style>""",
+    unsafe_allow_html=True,
+)
 if MARCA_DE_AGUA.exists():
     st.markdown(
         f"""<style>
@@ -434,15 +447,14 @@ def filtrar(datos, clave: str):
 
 
 def descargas(tabla, nombre: str, clave: str) -> None:
-    hoy = registro.ahora().strftime("%Y-%m-%d")
-    d1, d2 = st.columns(2)
-    d1.download_button(
-        "⬇️ Descargar Excel", registro.a_excel(tabla), f"{nombre}_{hoy}.xlsx",
+    """Botón para bajar la tabla en Excel. El título y el nombre del archivo llevan
+    el rango de fechas de lo que se está mostrando (según "Guardado el")."""
+    rango = registro.rango_de_fechas(tabla["Guardado el"]) if "Guardado el" in tabla else ""
+    titulo = f"{nombre} {rango}".strip()
+    archivo = titulo.replace("/", "-")  # en un nombre de archivo no puede ir "/"
+    st.download_button(
+        "⬇️ Descargar Excel", registro.a_excel(tabla, titulo), f"{archivo}.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"xlsx_{clave}",
-    )
-    d2.download_button(
-        "⬇️ Descargar CSV", tabla.to_csv(sep=";", index=False).encode("utf-8-sig"), f"{nombre}_{hoy}.csv", "text/csv",
-        key=f"csv_{clave}",
     )
 
 
@@ -458,7 +470,9 @@ if puede_ver_registros:
         else:
             vista = filtrar(pendientes, "pend")
             st.write(f"{len(vista)} registro(s) pendiente(s).")
-            tabla = vista[list(COLUMNAS_REGISTRO)].rename(columns=COLUMNAS_REGISTRO)
+            # En Registros no se muestra "Estado" (pedido de Edu, 22/11/2026). Sigue guardado en el registro.
+            columnas = {k: v for k, v in COLUMNAS_REGISTRO.items() if k != "estado"}
+            tabla = vista[list(columnas)].rename(columns=columnas)
             tabla.insert(0, "Revisado", False)
             st.write(f"**{usuario['nombre']}**, tildá los que ya viste y confirmaste, y tocá el botón para pasarlos a **Revisados**.")
             editada = st.data_editor(
@@ -477,7 +491,7 @@ if puede_ver_registros:
                 st.session_state.pop("editor_pendientes", None)
                 st.toast(f"{n} registro(s) pasaron a Revisados ✅")
                 st.rerun()
-            descargas(tabla.drop(columns="Revisado"), "trazabilidad_pendientes", "pend")
+            descargas(tabla.drop(columns="Revisado"), "Listado de registros sin revisar", "pend")
 
     with tab_revisados:
         st.caption("Registros que una farmacéutica ya vio y dio por buenos.")
@@ -489,7 +503,7 @@ if puede_ver_registros:
             columnas = {**COLUMNAS_REGISTRO, "revisado_por": "Revisado por", "revisado_el": "Revisado el"}
             tabla = vista[list(columnas)].rename(columns=columnas)
             st.dataframe(tabla, hide_index=True, use_container_width=True)
-            descargas(tabla, "trazabilidad_revisados", "rev")
+            descargas(tabla, "Listado de revisados", "rev")
             if True:
                 with st.expander("¿Tildaste uno por error? Volverlo a pendientes"):
                     opciones = {f"{r.gtin} · serie {r.serie} · revisado por {r.revisado_por}": (r.gtin, r.serie) for r in vista.itertuples()}
