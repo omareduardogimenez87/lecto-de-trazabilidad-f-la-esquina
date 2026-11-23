@@ -76,22 +76,44 @@ st.markdown(
 )
 
 # Ícono para "Agregar a la pantalla de inicio" del celular (Streamlit no trae opción para esto).
+# En Streamlit Cloud la app corre dentro de otra página (la de afuera trae el ícono rojo de
+# Streamlit), así que se cambia el ícono y el manifest en las dos: la de la app y la de afuera.
 if ICONO_CELULAR.exists():
     components.html(
         f"""<script>
-        const doc = window.parent.document;
-        for (const rel of ["apple-touch-icon", "icon"]) {{
-            let link = doc.querySelector(`link[rel="${{rel}}"][data-celular]`);
-            if (!link) {{ link = doc.createElement("link"); link.rel = rel; link.dataset.celular = "1"; doc.head.appendChild(link); }}
-            link.sizes = "180x180";
-            link.href = "data:image/png;base64,{en_base64(ICONO_CELULAR)}";
+        const DATA = "data:image/png;base64,{en_base64(ICONO_CELULAR)}";
+        const app = window.parent;
+        const icono = n => new URL("app/static/icono_" + n + ".png", app.location.href).href;
+        function aplicar(w) {{
+            const doc = w.document;
+            for (const rel of ["apple-touch-icon", "icon", "shortcut icon"]) {{
+                doc.querySelectorAll(`link[rel="${{rel}}"]:not([data-celular])`).forEach(l => l.remove());
+                let link = doc.querySelector(`link[rel="${{rel}}"][data-celular]`);
+                if (!link) {{ link = doc.createElement("link"); link.rel = rel; link.dataset.celular = "1"; doc.head.appendChild(link); }}
+                link.href = rel === "apple-touch-icon" ? icono(512) : DATA;
+            }}
+            for (const name of ["apple-mobile-web-app-title", "application-name"]) {{
+                let meta = doc.querySelector(`meta[name="${{name}}"]`);
+                if (!meta) {{ meta = doc.createElement("meta"); meta.name = name; doc.head.appendChild(meta); }}
+                meta.content = "App Trazabilidad";
+            }}
+            // Manifest propio (Android usa este para el ícono del acceso directo).
+            if (!doc.querySelector('link[rel="manifest"][data-celular]')) {{
+                const inicio = w.location.origin + w.location.pathname;
+                const manifest = {{
+                    name: "App Trazabilidad", short_name: "App Trazabilidad",
+                    start_url: inicio, scope: w.location.origin + "/", display: "standalone",
+                    background_color: "#F8FBEA", theme_color: "#8B5A9E",
+                    icons: [192, 512].map(n => ({{ src: icono(n), sizes: n + "x" + n, type: "image/png", purpose: "any" }})),
+                }};
+                const url = w.URL.createObjectURL(new w.Blob([JSON.stringify(manifest)], {{ type: "application/manifest+json" }}));
+                doc.querySelectorAll('link[rel="manifest"]').forEach(l => l.remove());
+                const link = doc.createElement("link"); link.rel = "manifest"; link.href = url; link.dataset.celular = "1";
+                doc.head.appendChild(link);
+            }}
         }}
-        // Nombre del acceso directo en la pantalla de inicio.
-        for (const name of ["apple-mobile-web-app-title", "application-name"]) {{
-            let meta = doc.querySelector(`meta[name="${{name}}"]`);
-            if (!meta) {{ meta = doc.createElement("meta"); meta.name = name; doc.head.appendChild(meta); }}
-            meta.content = "App Trazabilidad";
-        }}
+        aplicar(app);
+        try {{ if (window.top !== app) aplicar(window.top); }} catch (e) {{ /* la página de afuera no deja tocarla */ }}
         </script>""",
         height=0,
     )
