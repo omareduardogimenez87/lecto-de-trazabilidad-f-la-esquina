@@ -117,3 +117,115 @@ def test_excel_con_titulo():
     assert hoja["A1"].value == "Listado de revisados del domingo 22/11"
     assert hoja["A1"].font.size == 16 and hoja["A1"].fill.fgColor.rgb.endswith("8B5A9E")
     assert hoja["A3"].value == "GTIN" and hoja["A4"].value == "07795312020770" and hoja["A4"].number_format == "@"
+
+
+def test_archivar_por_mes_y_eliminar_en_csv(tmp_path):
+    archivo = tmp_path / "registros.csv"
+    registro.guardar(
+        [
+            _fila(serie="OCT", fecha_registro="15/10/2026 10:00:00"),
+            _fila(serie="NOV", fecha_registro="22/11/2026 10:00:00"),
+            _fila(serie="PEND", fecha_registro="22/11/2026 11:00:00"),
+        ],
+        archivo,
+    )
+    registro.marcar_revisados([("07795312020770", "OCT"), ("07795312020770", "NOV")], "Claudia", archivo)
+    assert registro.archivar_revisados(archivo) == {"2026-10": 1, "2026-11": 1}
+    assert list(registro.leer(archivo)["serie"]) == ["PEND"]  # Revisados quedó vacío
+    assert registro.meses_archivados(archivo) == ["2026-11", "2026-10"]
+    assert list(registro.leer_mes("2026-10", archivo)["serie"]) == ["OCT"]
+    assert registro.nombre_del_mes("2026-11") == "noviembre 2026"
+    # un envase archivado se sigue detectando como duplicado
+    assert registro.ya_registrado("07795312020770", "NOV", archivo)
+
+    registro.guardar([_fila(serie="NUEVO")], archivo)
+    registro.marcar_revisados([("07795312020770", "NUEVO")], "Fernanda", archivo)
+    assert registro.eliminar_revisados(archivo) == 1
+    assert list(registro.leer(archivo)["serie"]) == ["PEND"]
+    assert registro.meses_archivados(archivo) == ["2026-11", "2026-10"]  # el archivo no se toca
+
+
+class LibroFalso:
+    """Imita una planilla de Google con varias pestañas."""
+
+    def __init__(self):
+        self.hojas = []
+
+    def worksheets(self):
+        return list(self.hojas)
+
+    def del_worksheet(self, hoja):
+        self.hojas.remove(hoja)
+
+    def add_worksheet(self, title, rows, cols):
+        hoja = HojaFalsa()
+        hoja.title, hoja.spreadsheet = title, self
+        self.hojas.append(hoja)
+        return hoja
+
+
+def test_archivar_por_mes_en_google_sheets():
+    libro = LibroFalso()
+    principal = libro.add_worksheet("Hoja 1", 1000, 18)
+    registro.usar_planilla(principal)
+    try:
+        registro.guardar([_fila(serie="A", fecha_registro="22/11/2026 10:00:00"), _fila(serie="B")])
+        registro.marcar_revisados([("07795312020770", "A")], "Claudia")
+        assert registro.archivar_revisados() == {"2026-11": 1}
+        assert [h.title for h in libro.hojas] == ["Hoja 1", "Revisados 2026-11"]
+        assert list(registro.leer()["serie"]) == ["B"]
+        assert list(registro.leer_mes("2026-11")["serie"]) == ["A"]
+    finally:
+        registro.usar_planilla(None)
+
+
+def test_eliminar_mes_cerrado(tmp_path):
+    import pytest
+
+    archivo = tmp_path / "registros.csv"
+    actual = registro.ahora().strftime("%d/%m/%Y 10:00:00")
+    registro.guardar([_fila(serie="OCT", fecha_registro="15/10/2020 10:00:00"), _fila(serie="HOY", fecha_registro=actual)], archivo)
+    registro.marcar_revisados([("07795312020770", "OCT"), ("07795312020770", "HOY")], "Claudia", archivo)
+    registro.archivar_revisados(archivo)
+    mes_actual = registro.ahora().strftime("%Y-%m")
+    assert registro.mes_cerrado("2020-10") and not registro.mes_cerrado(mes_actual)
+    with pytest.raises(ValueError):
+        registro.eliminar_mes(mes_actual, archivo)
+    assert registro.eliminar_mes("2020-10", archivo) == 1
+    assert registro.meses_archivados(archivo) == [mes_actual]
+
+
+def test_eliminar_mes_en_google_sheets():
+    libro = LibroFalso()
+    registro.usar_planilla(libro.add_worksheet("Hoja 1", 1000, 18))
+    try:
+        registro.guardar([_fila(serie="A", fecha_registro="15/10/2020 10:00:00")])
+        registro.marcar_revisados([("07795312020770", "A")], "Claudia")
+        registro.archivar_revisados()
+        assert registro.eliminar_mes("2020-10") == 1
+        assert [h.title for h in libro.hojas] == ["Hoja 1"]
+    finally:
+        registro.usar_planilla(None)
+
+
+def test_notas_en_csv(tmp_path):
+    archivo = tmp_path / "registros.csv"
+    a = registro.guardar_nota("Yessi", "Botón más grande", archivo)
+    registro.guardar_nota("Maxi", "Otra cosa", archivo)
+    notas = registro.leer_notas(archivo)
+    assert list(notas["usuario"]) == ["Maxi", "Yessi"]  # la más nueva primero
+    registro.borrar_nota(a["id"], archivo)
+    assert list(registro.leer_notas(archivo)["nota"]) == ["Otra cosa"]
+
+
+def test_notas_en_google_sheets():
+    libro = LibroFalso()
+    registro.usar_planilla(libro.add_worksheet("Hoja 1", 1000, 18))
+    try:
+        n = registro.guardar_nota("Silvia", "Hola")
+        assert [h.title for h in libro.hojas] == ["Hoja 1", "Notas"]
+        assert list(registro.leer_notas()["nota"]) == ["Hola"]
+        registro.borrar_nota(n["id"])
+        assert registro.leer_notas().empty
+    finally:
+        registro.usar_planilla(None)

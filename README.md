@@ -18,6 +18,7 @@ La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y
 | ⚠️ Revisar | Se leyó del texto impreso y los datos cierran | Comparar con el envase, corregir si hace falta y tocar **Coincide con el envase: guardar** |
 | ❌ Sacar otra foto | Foto movida/oscura, el GTIN no cierra o falta la serie | Subir otra foto en la misma tarjeta (o corregir a mano mirando el envase). No deja guardar hasta que el GTIN cierre y haya serie |
 
+   - **Guardado automático**: las que salen ✅ (leídas del DataMatrix) se guardan solas apenas se cargan, y aparece "Se guardaron correctamente X foto(s)". Si alguna no se pudo leer (❌), un aviso dice cuál y pide sacar otra foto. Las ⚠️ esperan que alguien las compare con el envase y toque Guardar.
 5. Al guardar, la tarjeta y la foto se borran y la pantalla queda lista para el próximo envase.
    - **Varias fotos a la vez**: arriba aparece un solo botón **Guardar X foto(s)** que guarda todas las que se leyeron bien (✅ y ⚠️). Si alguna no se leyó bien (❌), un aviso dice cuáles quedan afuera y que hay que volver a sacarlas; esas quedan abajo para subir otra foto.
 6. Si ese envase (mismo GTIN + serie) **ya estaba cargado**, avisa quién y cuándo lo registró, y da dos opciones: **Reemplazar con estos datos** o **Descartar y dejar el anterior**.
@@ -27,6 +28,9 @@ Estas pestañas solo aparecen cuando se toca el nombre de **Claudia o Fernanda**
 
 - **Registros**: lo que cargó todo el equipo y falta revisar. Por defecto se ve todo, y se puede filtrar por quién lo subió o buscar por GTIN, serie o lote. La farmacéutica tilda **✔ Revisado** en los que ya vio y toca **Pasar a Revisados**.
 - **Revisados**: lo que ya revisó una farmacéutica, con quién y cuándo. Si se tildó uno por error, se puede volver a pendientes.
+  - **📦 Archivar por mes**: pasa todos los revisados a un archivo de su mes (en la nube, una pestaña `Revisados AAAA-MM` en la planilla; en la PC, `registros/archivo/AAAA-MM.csv`). Abajo, en **Meses archivados**, se elige el mes para verlo y bajarlo en Excel. Un envase archivado se sigue detectando como duplicado.
+  - **🗑️ Eliminar los revisados**: los borra para siempre. Para evitar un borrado por error, pregunta dos veces antes de hacerlo.
+  - Cuando un mes ya terminó, en **Meses archivados** aparece un aviso y la opción **🗑️ Eliminar el archivo de ese mes** (también pregunta dos veces). El mes en curso no se puede eliminar.
 - Las dos pestañas se descargan en **Excel** (GTIN y serie como texto, completos), con el nombre `Listado de registros sin revisar <fecha>` o `Listado de revisados <fecha>`. Columnas: GTIN, Serie, Lote, Vencimiento, Envió, Fecha de la foto y Guardado el; en Revisados también Revisado por y Revisado el.
 
 Cada fila guarda: fecha de registro, fecha de la foto (y de dónde salió), usuario, rol, sucursal, nombre de la foto, GTIN, serie, lote, vencimiento, elaboración, si se leyó del DataMatrix o del texto, y si se corrigió a mano.
@@ -37,6 +41,26 @@ Cada fila guarda: fecha de registro, fecha de la foto (y de dónde salió), usua
 
 - **App con Android (en internet, sin instalar nada)**: se abre con un link desde el celular y los registros van a una planilla de Google Sheets. Paso a paso en [PUBLICAR_EN_LA_NUBE.md](PUBLICAR_EN_LA_NUBE.md).
 - **App con Windows (en una PC de la farmacia)**: se instala en la PC y los celulares entran por el WiFi local. Los registros quedan en `registros/registros.csv`. Es la guía de abajo.
+
+### 💬 Consultas rápidas del mostrador
+Abajo de las fotos hay una sección **💬 Consultas rápidas** (sin IA, no usa internet). Se escribe una palabra (OSDE, Galeno, Ctrl+V, PICC, "quién trabaja hoy") o se toca una categoría (Obras sociales, Horarios, Promos, Mostrador...). Solo muestra lo que está en [`consultas/Base_Consultas_Mostrador_Mitre.md`](consultas/Base_Consultas_Mostrador_Mitre.md) y sigue sus reglas: lo ⚠️ dice "a confirmar con Germán o la farmacéutica", las promos con fecha "Hasta" pasada salen como **vencida**, las consultas de salud (dosis, para qué sirve) se derivan a la farmacéutica, y si no hay dato lo dice.
+
+**Cada viernes (horario nuevo)**: en el archivo `.md` se cambia la sección **2.1** (período y tabla). Después, en GitHub: abrir la carpeta `consultas` → **Add file → Upload files** → arrastrar el archivo nuevo con **el mismo nombre** → **Commit changes**. La app en la nube se actualiza sola en un par de minutos. Si hoy queda fuera del período cargado, la app responde "Todavía no está cargado el horario de esa fecha".
+
+**📷 Leer código de barras**: en Consultas se saca una foto del código de barras (o del DataMatrix) y la app muestra la oferta del producto, hasta cuándo vale y cuánto paga el cliente. Los datos salen de [`consultas/Ofertas_OTC_completo.xlsx`](consultas/Ofertas_OTC_completo.xlsx). Si el producto no tiene "Precio regular" dice "sin precio cargado"; si el código no está, "Producto no cargado". La categoría **💊 Ofertas OTC** muestra la lista completa. Para cargar precios o una oferta nueva, se edita el Excel y se sube igual que el `.md` (mismo nombre, carpeta `consultas`).
+
+**🗄️ ¿En qué cajón está?**: al buscar un medicamento (aunque esté mal escrito: "glibencamida", "dexametazona", "tafirl") la app dice en qué cajón está, con el nombre tal como está anotado en [`consultas/CAJONES_corregido.xlsx`](consultas/CAJONES_corregido.xlsx). Los nombres que en la hoja "Cambios" dicen "A confirmar" salen con ⚠️. Si el producto tiene oferta OTC vigente, también la muestra (verificar la presentación exacta). La categoría **🗄️ Cajones** muestra el mapa completo. Formato del Excel: primera columna el cajón, las siguientes lo que hay adentro. Se reemplaza igual que los otros (mismo nombre, carpeta `consultas`).
+
+> Ojo: la app es pública, así que cualquiera con el link ve estos datos (horarios, token, códigos).
+
+### 📝 Nota u observación
+Al elegir tu nombre aparece **📝 Nota u observación** para dejar algo que haya que cambiar o agregar a la app. Cada uno ve las notas que escribió hasta que cierra la app. **Omar** (`"ve_notas": true` en `usuarios.json`) ve todas, con quién y cuándo, y las borra con **✅ Listo, borrar** a medida que aplica los cambios. Se guardan en la pestaña **Notas** de la planilla (en la PC, `registros/notas.csv`). Opcional: si se agrega `clave_notas = "..."` en Secrets, la app pide esa clave para ver las notas.
+
+### ❓ Ayuda
+Al final de la app hay una sección **❓ Ayuda** con preguntas frecuentes y respuestas cortas (sin IA, no usa internet): cómo cargar un envase, qué significan ✅/⚠️/❌, foto que no se lee, duplicados, Registros/Revisados, archivar o eliminar un mes y descargar el Excel.
+
+### 🛠️ Soporte Área TI
+Al final de la app hay un botón **🛠️ Soporte Área TI** que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña.
 
 ## Cómo se instala (paso a paso, en Windows)
 
@@ -85,6 +109,9 @@ lector/gs1.py       interpretar GS1 (DataMatrix) y el texto impreso
 lector/imagen.py    leer la foto: DataMatrix (zxing-cpp), texto (Tesseract), fecha EXIF
 lector/calidad.py   nitidez de la foto y decidir ✅ / ⚠️ / ❌
 lector/registro.py  guardar en CSV y exportar a Excel
+lector/consultas.py consultas rápidas del mostrador (busca en consultas/*.md)
+lector/ofertas.py   ofertas OTC del Excel (consultas/Ofertas_OTC_completo.xlsx)
+lector/cajones.py   ¿en qué cajón está? (consultas/CAJONES_corregido.xlsx)
 app.py              la app (Streamlit)
 procesar_carpeta.py procesar una carpeta de fotos desde la terminal
 tests/              pruebas automáticas:  python -m pytest

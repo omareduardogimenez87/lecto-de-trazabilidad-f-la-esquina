@@ -169,3 +169,41 @@ def analizar(img: Image.Image) -> list[Lectura]:
         lec.avisos.append("No se encontró DataMatrix y el OCR no está instalado")
         return [lec]
     return [combinar([parsear_texto(t) for t in textos])]
+
+
+# ---------------------------------------------------------------- código de barras (consultas)
+
+def leer_codigos_de_producto(img: Image.Image) -> list[str]:
+    """Busca el código de barras del producto (EAN-13, EAN-8, UPC) o el DataMatrix.
+
+    Devuelve los números encontrados (GTIN/EAN), sin repetidos. Del DataMatrix
+    se toma solo el GTIN (01).
+    """
+    if zxingcpp is None:
+        return []
+    import warnings
+
+    with warnings.catch_warnings():  # zxing-cpp 3 prefiere una tupla; el "|" sirve en la 2 y la 3
+        warnings.simplefilter("ignore", DeprecationWarning)
+        formatos = (
+            zxingcpp.BarcodeFormat.EAN13 | zxingcpp.BarcodeFormat.EAN8 | zxingcpp.BarcodeFormat.UPCA
+            | zxingcpp.BarcodeFormat.UPCE | zxingcpp.BarcodeFormat.DataMatrix
+        )
+    for v in _variantes(img):
+        for binarizador in (zxingcpp.Binarizer.LocalAverage, zxingcpp.Binarizer.GlobalHistogram):
+            res = zxingcpp.read_barcodes(
+                v, formats=formatos, try_rotate=True, try_invert=True, try_downscale=True, binarizer=binarizador
+            )
+            codigos = []
+            for r in res:
+                if not r.text:
+                    continue
+                if r.format == zxingcpp.BarcodeFormat.DataMatrix:
+                    gtin = parsear_gs1(r.text).gtin
+                    if gtin:
+                        codigos.append(gtin)
+                else:
+                    codigos.append(r.text)
+            if codigos:
+                return list(dict.fromkeys(codigos))
+    return []
