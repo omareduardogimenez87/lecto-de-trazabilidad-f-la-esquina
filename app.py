@@ -364,6 +364,26 @@ ESTILO_BOTONES = """
 .st-key-fotos [data-testid="stColumn"] { flex: 1 1 0 !important; min-width: 0 !important; width: auto !important; }
 .st-key-camara section button { background: #c62f3f; color: white; border-color: #c62f3f; }
 .st-key-galeria section button { background: white; color: #31333f !important; opacity: 1 !important; }
+/* "Sacar de nuevo" en las tarjetas ❌: mismo estilo que "Sacar foto", del alto de un botón común. */
+[class*="st-key-recamara_"] [data-testid="stFileUploaderDropzoneInstructions"],
+[class*="st-key-recamara_"] [data-testid="stFileChip"] { display: none !important; }
+[class*="st-key-recamara_"] section { padding: 0; background: transparent; border: none; display: block; }
+[class*="st-key-recamara_"] section > span, [class*="st-key-recamara_"] section button { display: block; width: 100%; max-width: none; }
+[class*="st-key-recamara_"] section button {
+  min-height: 2.5rem; font-size: 0 !important; border-radius: 0.5rem; background: #c62f3f; color: white; border: 1px solid #c62f3f;
+}
+[class*="st-key-recamara_"] section button * { display: none !important; }
+[class*="st-key-recamara_"] section button::before { content: "📷  Sacar de nuevo"; font-size: 1rem; }
+/* Consultas: botón "Escanear código o producto" en lugar del "Upload". */
+.st-key-escanear [data-testid="stFileUploaderDropzoneInstructions"],
+.st-key-escanear [data-testid="stFileChip"] { display: none !important; }
+.st-key-escanear section { padding: 0; background: transparent; border: none; display: block; }
+.st-key-escanear section > span, .st-key-escanear section button { display: block; width: 100%; max-width: none; }
+.st-key-escanear section button {
+  min-height: 3.2rem; font-size: 0 !important; border-radius: 0.75rem; background: #8B5A9E; color: white; border: 1px solid #8B5A9E;
+}
+.st-key-escanear section button * { display: none !important; }
+.st-key-escanear section button::before { content: "📷  Escanear código o producto"; font-size: 1.1rem; }
 </style>
 """
 
@@ -374,7 +394,7 @@ SCRIPT_CAMARA = """
 <script>
 const doc = window.parent.document;
 function ajustar() {
-  doc.querySelectorAll('.st-key-camara input[type=file]').forEach(i => {
+  doc.querySelectorAll('.st-key-camara input[type=file], [class*="st-key-recamara_"] input[type=file], .st-key-escanear input[type=file]').forEach(i => {
     if (i.getAttribute('capture') !== 'environment') i.setAttribute('capture', 'environment');
     if (i.getAttribute('accept') !== 'image/*') i.setAttribute('accept', 'image/*');
   });
@@ -520,9 +540,16 @@ with tab_leer:
                     "**No estoy seguro de haber leído bien.** " + " · ".join(it["motivos"])
                     + ". Sacá otra foto más de cerca y con buena luz, o corregí los datos a mano mirando el envase."
                 )
-                otra_foto = st.file_uploader(
-                    "Otra foto", type=["jpg", "jpeg", "png", "webp"], key=f"otra_{it['id']}", label_visibility="collapsed"
-                )
+                # Dos opciones claras: volver a sacar la foto (abre la cámara) o quitar esta tarjeta.
+                col_otra, col_cancelar = st.columns(2)
+                with col_otra:
+                    with st.container(key=f"recamara_{it['id']}"):
+                        otra_foto = st.file_uploader(
+                            "Sacar de nuevo", type=TIPOS_FOTO, key=f"otra_{it['id']}", label_visibility="collapsed"
+                        )
+                if col_cancelar.button("🗑️ Cancelar y eliminar", key=f"cancelar_{it['id']}", use_container_width=True):
+                    cerrar_tarjeta(it, ("info", "Se eliminó esa foto sin guardar nada."))
+                    st.rerun()
                 if otra_foto is not None:
                     reemplazar(it["id"], otra_foto.getvalue(), otra_foto.name)
                     st.rerun()
@@ -771,6 +798,7 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
 
 
 OFERTAS_ETIQUETA = "💊 Ofertas OTC"
+TITULO_AYUDANTE = "💬 Chatear con el ayudante"  # no usa IA: busca en los archivos de la carpeta consultas
 CATALOGO_ETIQUETA = "🛍️ Catálogo"
 CAJONES_ETIQUETA = "🗄️ Cajones"
 
@@ -815,13 +843,21 @@ if consultas.ARCHIVO.exists():
         productos = catalogo_de_productos(catalogo.ARCHIVO.stat().st_mtime if catalogo.ARCHIVO.exists() else 0)
         hoy = consultas.hoy_argentina()
 
+        # Arriba: el buscador ("ayudante", sin IA). Debajo: escanear el código del producto.
+        st.markdown(f"**{TITULO_AYUDANTE}**")
+        st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
+                   "quién trabaja hoy) o tocá una categoría. Para los cajones sirve aunque esté mal escrito.")
+        pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
+                                 placeholder="🔎 Buscar: obra social, producto, promo, atajo...")
+
         # Lector de código de barras: foto del producto -> oferta, precio o dato cargado.
-        st.markdown("**📷 Leer código de barras**")
         st.session_state.setdefault("ronda_codigo", 0)
-        foto_codigo = st.file_uploader(
-            "Foto del código de barras", type=TIPOS_FOTO, key=f"foto_codigo_{st.session_state['ronda_codigo']}",
-            label_visibility="collapsed",
-        )
+        # Un solo botón grande que abre la cámara (sin el "Upload" ni el texto de Streamlit).
+        with st.container(key="escanear"):
+            foto_codigo = st.file_uploader(
+                "Escanear código o producto", type=TIPOS_FOTO, key=f"foto_codigo_{st.session_state['ronda_codigo']}",
+                label_visibility="collapsed",
+            )
         if foto_codigo is not None:
             try:
                 codigos = leer_codigos_de_producto(abrir(foto_codigo))
@@ -836,11 +872,6 @@ if consultas.ARCHIVO.exists():
                 st.session_state["ronda_codigo"] += 1
                 st.rerun()
 
-        st.markdown("**🔎 Buscar**")
-        st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
-                   "quién trabaja hoy) o tocá una categoría. Para los cajones sirve aunque esté mal escrito.")
-        pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
-                                 placeholder="🔎 Buscar: obra social, producto, promo, atajo...")
         st.markdown(
             "<style>.st-key-categorias [data-testid='stButtonGroup'] button p { font-size: .95rem !important; }"
             ".st-key-categorias [data-testid='stButtonGroup'] button { min-height: 2.4rem; padding: .3rem .5rem !important; }</style>",
@@ -988,7 +1019,7 @@ Tocá tu nombre arriba. Después tocá **Sacar foto** (abre la cámara) o **Gale
 **✅ ⚠️ ❌ ¿Qué significan?**
 - **✅ Lista**: se leyó del cuadradito (DataMatrix) y es exacta. Se guarda sola.
 - **⚠️ Revisar**: se leyó del texto impreso. Puede tener algún error, así que compará con el envase y tocá **Guardar**.
-- **❌ Sacar otra foto**: no se pudo leer bien. Sacá otra foto más de cerca y con buena luz.
+- **❌ Sacar otra foto**: no se pudo leer bien. Tocá **📷 Sacar de nuevo** (más de cerca y con buena luz) o **🗑️ Cancelar y eliminar** para quitarla sin guardar.
 
 **📸 La foto no se lee, ¿qué hago?**
 Sacá otra: un solo envase, de cerca, con buena luz, sin reflejos y **sin marcar ni tapar** el cuadradito.
