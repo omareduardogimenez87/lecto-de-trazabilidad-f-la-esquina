@@ -61,8 +61,8 @@ Al elegir tu nombre aparece, chiquito debajo de los botones de foto, **📝 Nota
 ### ❓ Ayuda
 La ayuda está dentro de **💬 Consultas rápidas y ayuda** (sin IA, no usa internet): se escribe la duda en el mismo buscador ("la foto no se lee", "archivar", "descargar excel") o se toca **❓ Ayuda de la app** para ver todas las preguntas frecuentes. Los botones de categoría que quedan son Programas, PICC Elea, Ofertas OTC, Cajones y Ayuda; el resto de los datos se encuentra escribiendo.
 
-### 🛠️ Soporte Área TI
-Al final de la app hay un botón **🛠️ Soporte Área TI** que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña.
+### Acceso a Incidencias Equipo TI
+Al final de la app hay un botón con el logo de I.T. AREA, **Acceso a Incidencias Equipo TI**, que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña.
 
 ## Cómo se instala (paso a paso, en Windows)
 

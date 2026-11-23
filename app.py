@@ -1025,8 +1025,20 @@ if consultas.ARCHIVO.exists():
         st.caption(f"Lo marcado con ⚠️ está {consultas.A_CONFIRMAR}. "
                    "Las consultas de salud (dosis, para qué sirve) las responde la farmacéutica.")
 
-# Soporte: abre el sistema de tickets del Área TI en otra pestaña.
-st.link_button("🛠️ Soporte Área TI", "https://area-t-i-tickets.vercel.app/", use_container_width=True)
+# Soporte: abre el sistema de tickets del Área TI en otra pestaña, con el logo de I.T. AREA.
+LOGO_TI = IMAGENES / "logo_ti.png"
+URL_TICKETS = "https://area-t-i-tickets.vercel.app/"
+if LOGO_TI.exists():
+    st.markdown(
+        f"""<a href="{URL_TICKETS}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center;
+        gap:.6rem; padding:.5rem 1rem; border:1px solid rgba(49,51,63,.2); border-radius:.5rem; text-decoration:none;
+        color:inherit; font-weight:500;">
+        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:2.2rem; width:2.2rem; border-radius:50%;">
+        Acceso a Incidencias Equipo TI</a>""",
+        unsafe_allow_html=True,
+    )
+else:
+    st.link_button("Acceso a Incidencias Equipo TI", URL_TICKETS, use_container_width=True)
 
 # ------------------------------------------------------------ pie de página (marca de agua)
 # Leyenda al final de la app, en gris y letra chica, visible en todas las pantallas.
