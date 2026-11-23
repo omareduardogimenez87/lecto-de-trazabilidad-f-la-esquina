@@ -135,3 +135,8 @@ python procesar_carpeta.py CARPETA_CON_FOTOS --usuario Omar
 
 ## Privacidad
 Este repositorio es **privado**. No se suben fotos ni registros (lo impide el `.gitignore`).
+
+### Contacto de la sucursal y envío para imprimir
+- **📤 Enviar para imprimir**: primero se saca la foto (o se elige de la galería, también PDF) y al tocar **Enviar** se abre el menú *Compartir* del celular con el texto "Te comparto un archivo para imprimir". Ahí se elige WhatsApp o Gmail y el contacto de la Mitre (la app no puede elegir el contacto sola). Funciona en Chrome de Android; si el navegador no deja compartir archivos, muestra un aviso.
+- **WhatsApp Sucursal Mitre** (+54 9 385 475-0195) y **Correo esquinamitre@fesquina.com.ar**: accesos directos con el mensaje ya escrito (no adjuntan archivos).
+- Fondo de la app: degradado lima, crema y lila.

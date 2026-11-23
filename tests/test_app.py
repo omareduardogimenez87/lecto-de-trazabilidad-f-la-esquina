@@ -209,3 +209,16 @@ def test_boton_pagina_oficial():
     at = AppTest.from_file(APP, default_timeout=60).run()
     enlaces = [m.value for m in at.markdown if "Página oficial" in m.value]
     assert enlaces and 'href="https://farmacialaesquina.com.ar/"' in enlaces[0] and 'target="_blank"' in enlaces[0]
+
+
+def test_boton_whatsapp_sucursal():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    enlaces = [m.value for m in at.markdown if "Sucursal Mitre" in m.value and "wa.me" in m.value]
+    assert enlaces
+    assert 'href="https://wa.me/5493854750195?text=Te%20comparto%20un%20archivo%20para%20imprimir"' in enlaces[0]
+
+
+def test_boton_correo_sucursal():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    enlaces = [m.value for m in at.markdown if "mailto:esquinamitre@fesquina.com.ar" in m.value]
+    assert enlaces and "body=Te%20adjunto%20archivos%20para%20imprimir" in enlaces[0]
