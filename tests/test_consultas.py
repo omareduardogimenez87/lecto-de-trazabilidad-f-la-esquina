@@ -71,18 +71,18 @@ def test_promo_vencida():
 def test_la_app_muestra_consultas():
     at = AppTest.from_file(APP, default_timeout=60).run()
     caja = next(t for t in at.text_input if t.key == "consulta_txt")
-    caja.input("osde").run()
+    at.text_input(key="consulta_txt").input("osde"); at.button(key="btn_buscar").click().run()
     assert not at.exception
     assert any("OSDE" in m.value for m in at.markdown)
-    caja.input("zzzqqq").run()
+    at.text_input(key="consulta_txt").input("zzzqqq"); at.button(key="btn_buscar").click().run()
     assert any(consultas.SIN_DATO in i.value for i in at.info)
-    caja.input("").run()
+    at.text_input(key="consulta_txt").input(""); at.button(key="btn_buscar").click().run()
     cat = next(p for p in at.pills if p.key == "consulta_cat")
     nombres = {o.split(" ", 1)[-1] if not o[0].isalpha() else o for o in cat.options}
     assert nombres == {"Ofertas OTC", "Cajones"}
     cat.set_value("🗄️ Cajones").run()
     assert not at.exception and any("CAJON 2-A" in m.value for m in at.markdown)
-    caja.input("alvetide").run()  # el PICC se sigue encontrando escribiendo
+    at.text_input(key="consulta_txt").input("alvetide"); at.button(key="btn_buscar").click().run()  # el PICC se sigue encontrando escribiendo
     assert any("Alvetide" in m.value for m in at.markdown)
-    caja.input("andromaco").run()  # las promos se siguen encontrando escribiendo
+    at.text_input(key="consulta_txt").input("andromaco"); at.button(key="btn_buscar").click().run()  # las promos se siguen encontrando escribiendo
     assert any("Andrómaco" in m.value for m in at.markdown)

@@ -44,8 +44,8 @@ def test_ofertas_del_producto_del_cajon():
 def test_la_app_dice_el_cajon():
     at = AppTest.from_file(APP, default_timeout=60).run()
     caja = next(t for t in at.text_input if t.key == "consulta_txt")
-    caja.input("glibencamida").run()
+    at.text_input(key="consulta_txt").input("glibencamida"); at.button(key="btn_buscar").click().run()
     assert not at.exception
     assert any("CAJON 2-A" in m.value for m in at.markdown)
-    caja.input("tafirol").run()
+    at.text_input(key="consulta_txt").input("tafirol"); at.button(key="btn_buscar").click().run()
     assert any(cajones.VERIFICAR in c.value for c in at.caption)

@@ -66,7 +66,7 @@ def test_la_app_responde_con_la_foto():
     at = AppTest.from_file(APP, default_timeout=60).run()
     assert not at.exception
     caja = next(t for t in at.text_input if t.key == "consulta_txt")
-    caja.input("tafirol duo").run()
+    at.text_input(key="consulta_txt").input("tafirol duo"); at.button(key="btn_buscar").click().run()
     assert any("TAFIROL DUO" in m.value for m in at.markdown)
-    caja.input("1234567890128").run()
+    at.text_input(key="consulta_txt").input("1234567890128"); at.button(key="btn_buscar").click().run()
     assert any(ofertas.NO_CARGADO in i.value for i in at.info)

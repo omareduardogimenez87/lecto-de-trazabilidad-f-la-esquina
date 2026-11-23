@@ -29,6 +29,6 @@ def test_tolera_errores():
 
 def test_la_app_muestra_el_catalogo():
     at = AppTest.from_file(APP, default_timeout=60).run()
-    next(t for t in at.text_input if t.key == "consulta_txt").input("head shoulders").run()
+    next(t for t in at.text_input if t.key == "consulta_txt").input("head shoulders"); at.button(key="btn_buscar").click().run()
     assert not at.exception
     assert any("Head & Shoulders" in m.value for m in at.markdown)

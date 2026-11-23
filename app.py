@@ -379,11 +379,15 @@ ESTILO_BOTONES = """
 .st-key-escanear [data-testid="stFileChip"] { display: none !important; }
 .st-key-escanear section { padding: 0; background: transparent; border: none; display: block; }
 .st-key-escanear section > span, .st-key-escanear section button { display: block; width: 100%; max-width: none; }
+.st-key-escanear section { text-align: center; }
+.st-key-escanear section > span, .st-key-escanear section button { display: inline-block !important; width: auto !important; }
 .st-key-escanear section button {
-  min-height: 3.2rem; font-size: 0 !important; border-radius: 0.75rem; background: #8B5A9E; color: white; border: 1px solid #8B5A9E;
+  min-height: 2rem; padding: .3rem .9rem; font-size: 0 !important; border-radius: 999px; background: #8B5A9E; color: white; border: 1px solid #8B5A9E;
 }
 .st-key-escanear section button * { display: none !important; }
-.st-key-escanear section button::before { content: "📷  Escanear código o producto"; font-size: 1.1rem; }
+/* Ícono de código de barras (dibujado en SVG) + texto, la mitad de grande que antes. */
+.st-key-escanear section button::before { content: "Escanear código o producto"; font-size: .9rem; padding-left: 1.7rem;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2016%27%20fill%3D%27white%27%3E%3Crect%20x%3D%270%27%20y%3D%270%27%20width%3D%272%27%20height%3D%2716%27/%3E%3Crect%20x%3D%273%27%20y%3D%270%27%20width%3D%271%27%20height%3D%2716%27/%3E%3Crect%20x%3D%275%27%20y%3D%270%27%20width%3D%273%27%20height%3D%2716%27/%3E%3Crect%20x%3D%279%27%20y%3D%270%27%20width%3D%271%27%20height%3D%2716%27/%3E%3Crect%20x%3D%2711%27%20y%3D%270%27%20width%3D%272%27%20height%3D%2716%27/%3E%3Crect%20x%3D%2714%27%20y%3D%270%27%20width%3D%271%27%20height%3D%2716%27/%3E%3Crect%20x%3D%2716%27%20y%3D%270%27%20width%3D%273%27%20height%3D%2716%27/%3E%3Crect%20x%3D%2720%27%20y%3D%270%27%20width%3D%271%27%20height%3D%2716%27/%3E%3Crect%20x%3D%2722%27%20y%3D%270%27%20width%3D%272%27%20height%3D%2716%27/%3E%3C/svg%3E") no-repeat left center / 1.3rem .9rem; }
 </style>
 """
 
@@ -857,6 +861,55 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
 OFERTAS_ETIQUETA = "💊 Ofertas OTC"
 AYUDA_ETIQUETA = "❓ Ayuda de la app"
 SECCIONES_CON_BOTON = ()  # ninguna sección del .md tiene botón (pedido de Edu); se encuentran escribiendo
+ESTILO_BUSCADOR = """
+<style>
+/* Caja de texto y botón 🔎 en la misma línea, también en el celular; sin el cartel "Press Enter". */
+.st-key-buscador [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: .4rem; align-items: center; }
+.st-key-buscador [data-testid="stColumn"]:first-child { flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; }
+.st-key-buscador [data-testid="stColumn"]:last-child { flex: 0 0 3rem !important; min-width: 3rem !important; width: 3rem !important; }
+.st-key-buscador [data-testid="InputInstructions"] { display: none !important; }
+.st-key-buscador [data-testid="stFormSubmitButton"] button { min-height: 2.6rem; padding: 0; font-size: 1.2rem; }
+.st-key-buscador input { padding-right: 2.6rem !important; }
+.boton-voz { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); border: none; background: transparent;
+  font-size: 1.25rem; cursor: pointer; z-index: 5; padding: .2rem; line-height: 1; }
+.boton-voz.escuchando { animation: latido 1s infinite; }
+@keyframes latido { 50% { transform: translateY(-50%) scale(1.25); } }
+</style>
+"""
+
+# Dictado por voz: usa el reconocimiento de voz del navegador (Chrome en Android lo trae; en otros puede no estar).
+# Si no está, no aparece el 🎤 y se puede usar el micrófono del teclado del celular.
+SCRIPT_VOZ = """
+<script>
+const doc = window.parent.document;
+const win = window.parent;
+const Reconocer = win.SpeechRecognition || win.webkitSpeechRecognition;
+function poner() {
+  const caja = doc.querySelector('.st-key-buscador input');
+  if (!Reconocer || !caja || caja.parentElement.querySelector('.boton-voz')) return;
+  caja.parentElement.style.position = 'relative';
+  const b = doc.createElement('button');
+  b.type = 'button'; b.className = 'boton-voz'; b.textContent = '🎤'; b.title = 'Dictar por voz';
+  b.onclick = () => {
+    const r = new Reconocer(); r.lang = 'es-AR'; r.interimResults = false; r.maxAlternatives = 1;
+    b.classList.add('escuchando');
+    r.onresult = (e) => {
+      const texto = e.results[0][0].transcript;
+      const setter = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value').set;
+      setter.call(caja, texto);
+      caja.dispatchEvent(new Event('input', { bubbles: true }));
+      setTimeout(() => { const enviar = doc.querySelector('.st-key-buscador [data-testid="stFormSubmitButton"] button'); if (enviar) enviar.click(); }, 150);
+    };
+    r.onend = () => b.classList.remove('escuchando');
+    r.onerror = () => b.classList.remove('escuchando');
+    r.start();
+  };
+  caja.parentElement.appendChild(b);
+}
+poner();
+new MutationObserver(poner).observe(doc.body, {childList: true, subtree: true});
+</script>
+"""
 TITULO_AYUDANTE = "Asistente La Esquina"  # no usa IA: busca en los archivos de la carpeta consultas
 CATALOGO_ETIQUETA = "🛍️ Catálogo"
 CAJONES_ETIQUETA = "🗄️ Cajones"
@@ -913,10 +966,18 @@ if consultas.ARCHIVO.exists():
             f'<div style="font-size:.85rem; color:#6b6b6b;">Consultas rápidas y ayuda de la app</div></div></div>',
             unsafe_allow_html=True,
         )
-        st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
+        st.caption("Escribí (o dictá con 🎤) una palabra o el número del código y tocá 🔎 o Enter (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
                    "quién trabaja hoy, la foto no se lee). Para los cajones sirve aunque esté mal escrito.")
-        pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
-                                 placeholder="🔎 Buscar: obra social, producto, promo, atajo...")
+        # Buscador: se escribe y se busca con Enter o con el botón 🔎. El 🎤 (si el navegador lo permite)
+        # dicta la búsqueda por voz. Va en un formulario para que busque solo al confirmar.
+        st.markdown(ESTILO_BUSCADOR, unsafe_allow_html=True)
+        with st.container(key="buscador"):
+            with st.form("form_buscar", border=False):
+                col_txt, col_btn = st.columns([6, 1])
+                pregunta = col_txt.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
+                                              placeholder="Escribí o dictá tu consulta...")
+                col_btn.form_submit_button("🔎", key="btn_buscar", use_container_width=True, help="Buscar")
+        components.html(SCRIPT_VOZ, height=0)
 
         # Lector de código de barras: foto del producto -> oferta, precio o dato cargado.
         st.session_state.setdefault("ronda_codigo", 0)
@@ -1041,10 +1102,10 @@ if LOGO_TI.exists():
         # Colores de Área TI, pero discreto (pedido de Edu): botón chico y centrado, fondo claro,
         # borde fino degradé violeta → verde y el logo redondo con aro verde.
         f"""<div style="text-align:center;"><a href="{URL_TICKETS}" target="_blank" rel="noopener" style="display:inline-flex;
-        align-items:center; gap:.4rem; padding:.25rem .7rem; border:1px solid transparent; border-radius:999px;
-        text-decoration:none; color:#31333f; font-size:.82rem; font-weight:500;
+        align-items:center; gap:.5rem; padding:.35rem .95rem; border:1px solid transparent; border-radius:999px;
+        text-decoration:none; color:#31333f; font-size:1.05rem; font-weight:500;
         background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #8B5CF6, #22C55E) border-box;">
-        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:1.2rem; width:1.2rem; border-radius:50%;
+        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:1.6rem; width:1.6rem; border-radius:50%;
         box-shadow: 0 0 0 1px #22C55E;">
         <span>Reportar incidencia a <span style="color:#7C3AED">Equipo</span> <span style="color:#16A34A">TI</span></span></a></div>""",
         unsafe_allow_html=True,
