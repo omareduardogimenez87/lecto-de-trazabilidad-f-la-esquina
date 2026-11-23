@@ -1150,15 +1150,17 @@ st.markdown(
 ENVIAR_PARA_IMPRIMIR = """
 <style>
   body { margin:0; font-family: "Source Sans Pro", sans-serif; text-align:center; color:#31333f; }
-  .caja { border:1px solid #d9cbe3; border-radius:14px; padding:.6rem .6rem .7rem; background:#ffffffcc; }
-  .tit { font-weight:700; color:#8B5A9E; margin-bottom:.45rem; }
-  .fila { display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; }
+  .caja { border:1px solid #d9cbe3; border-radius:14px; padding:.5rem .6rem .55rem; background:#ffffffcc; }
+  .tit { font-weight:700; color:#8B5A9E; margin-bottom:.35rem; }
+  .fila { display:flex; gap:.4rem; justify-content:center; }
+  .fila label { flex:1 1 0; max-width:12rem; white-space:nowrap; }
+  button#enviar { display:block; width:100%; max-width:24.4rem; margin:.35rem auto 0; }
   label, button { font:inherit; font-size:.95rem; border-radius:999px; padding:.35rem .9rem; cursor:pointer;
                   border:1px solid #BFCD3A; background:#F8FBEA; color:#31333f; }
   button#enviar { background:#25D366; border-color:#25D366; color:#fff; font-weight:700; }
   button#enviar:disabled { background:#e6e6e6; border-color:#e6e6e6; color:#999; cursor:default; }
   input { display:none; }
-  .nota { font-size:.8rem; color:#777; margin-top:.4rem; }
+  .nota { font-size:.8rem; color:#777; margin-top:.3rem; line-height:1.2; }
   .ok { color:#16A34A; } .mal { color:#c0392b; }
 </style>
 <div class="caja">
@@ -1166,8 +1168,8 @@ ENVIAR_PARA_IMPRIMIR = """
   <div class="fila">
     <label>📷 Sacar foto<input id="cam" type="file" accept="image/*" capture="environment"></label>
     <label>🖼️ Galería o archivo<input id="gal" type="file" accept="image/*,application/pdf" multiple></label>
-    <button id="enviar" disabled>Enviar</button>
   </div>
+  <button id="enviar" disabled>📤 Enviar (WhatsApp o correo)</button>
   <div class="nota" id="nota">1) Sacá o elegí el archivo · 2) Tocá Enviar y elegí WhatsApp o Gmail y el contacto de la Mitre.</div>
 </div>
 <script>
@@ -1200,7 +1202,7 @@ ENVIAR_PARA_IMPRIMIR = """
   });
 </script>
 """
-components.html(ENVIAR_PARA_IMPRIMIR, height=172)
+components.html(ENVIAR_PARA_IMPRIMIR, height=158)
 
 # WhatsApp de la sucursal Mitre, con el mensaje ya escrito.
 # Por defecto, los de la Mitre. Para probar con otros datos, en Secrets:
