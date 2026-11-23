@@ -23,7 +23,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import consultas, ofertas, registro
+from lector import cajones, consultas, ofertas, registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, leer_codigos_de_producto, ocr_disponible
@@ -721,7 +721,19 @@ def ofertas_otc(_modificado: float):
     return ofertas.leer() if ofertas.ARCHIVO.exists() else []
 
 
+@st.cache_data(show_spinner=False)
+def mapa_de_cajones(_modificado: float):
+    return cajones.leer() if cajones.ARCHIVO.exists() else []
+
+
 OFERTAS_ETIQUETA = "💊 Ofertas OTC"
+CAJONES_ETIQUETA = "🗄️ Cajones"
+
+
+def mostrar_cajones(encontrados) -> None:
+    st.markdown("<small>¿En qué cajón está?</small>", unsafe_allow_html=True)
+    st.markdown("  \n".join(cajones.texto(it) for it in encontrados))
+    st.divider()
 
 
 def mostrar_ofertas(lista, hoy) -> None:
@@ -735,6 +747,11 @@ def responder_codigo(codigo: str, base, lista, hoy) -> None:
     encontradas = ofertas.por_codigo(lista, codigo)
     if encontradas:
         mostrar_ofertas(encontradas, hoy)
+        primera = encontradas[0].producto.split()[0]
+        en_cajon = cajones.buscar(items_cajones, primera)
+        if en_cajon:
+            st.caption(f"Puede estar en estos cajones ({cajones.VERIFICAR}):")
+            mostrar_cajones(en_cajon)
         return
     datos = consultas.buscar(base, codigo, hoy)["datos"]
     if datos:
@@ -749,6 +766,7 @@ if consultas.ARCHIVO.exists():
     with st.expander("💬 Consultas rápidas del mostrador"):
         base = base_de_consultas(consultas.ARCHIVO.stat().st_mtime)
         lista_ofertas = ofertas_otc(ofertas.ARCHIVO.stat().st_mtime if ofertas.ARCHIVO.exists() else 0)
+        items_cajones = mapa_de_cajones(cajones.ARCHIVO.stat().st_mtime if cajones.ARCHIVO.exists() else 0)
         hoy = consultas.hoy_argentina()
 
         # Lector de código de barras: foto del producto -> oferta, precio o dato cargado.
@@ -773,8 +791,8 @@ if consultas.ARCHIVO.exists():
                 st.rerun()
 
         st.markdown("**🔎 Buscar**")
-        st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, Ctrl+V, PICC, quién trabaja hoy) "
-                   "o tocá una categoría.")
+        st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
+                   "quién trabaja hoy) o tocá una categoría. Para los cajones sirve aunque esté mal escrito.")
         pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
                                  placeholder="🔎 Buscar: obra social, producto, promo, atajo...")
         st.markdown(
@@ -786,6 +804,9 @@ if consultas.ARCHIVO.exists():
         if lista_ofertas:
             etiquetas.insert(next((i + 1 for i, s in enumerate(base.secciones) if s.numero == "7"), len(etiquetas)),
                              OFERTAS_ETIQUETA)
+        if items_cajones:
+            etiquetas.insert(next((i + 1 for i, e in enumerate(etiquetas) if e.endswith("Mostrador")), len(etiquetas)),
+                             CAJONES_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
         if pregunta.strip():
@@ -794,22 +815,39 @@ if consultas.ARCHIVO.exists():
                 st.warning(f"👩‍⚕️ {consultas.SALUD}")
             else:
                 encontradas = ofertas.buscar(lista_ofertas, pregunta)
+                en_cajon = cajones.buscar(items_cajones, pregunta)
+                if en_cajon:
+                    mostrar_cajones(en_cajon)
+                    # Ofertas del mismo producto que está en el cajón (sin repetir las ya encontradas).
+                    ids = {o.codigo for o in encontradas}
+                    for it in en_cajon:
+                        for o in cajones.ofertas_del_item(it, lista_ofertas, hoy, pregunta):
+                            if o.codigo not in ids:
+                                encontradas.append(o)
+                                ids.add(o.codigo)
                 if r["hoy"]:
                     mostrar_horario_de_hoy(base, hoy)
                 if r["sin_horario"]:
                     st.info(f"🕒 {consultas.SIN_HORARIO}")
                 if encontradas:
                     st.markdown("<small>Ofertas OTC</small>", unsafe_allow_html=True)
+                    if en_cajon:
+                        st.caption(f"🏷️ Hay ofertas de este producto: {cajones.VERIFICAR}.")
                     mostrar_ofertas(encontradas, hoy)
                 for titulo, texto in r["datos"]:
                     st.markdown(f"<small>{titulo}</small>", unsafe_allow_html=True)
                     st.markdown(texto)
                     st.divider()
-                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas):
+                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon):
                     if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
                     else:
                         st.info(consultas.SIN_DATO)
+        elif categoria == CAJONES_ETIQUETA:
+            for cajon, contenido in cajones.mapa(items_cajones).items():
+                st.markdown(f"**🗄️ {cajon}**  \n" + " · ".join(
+                    it.nombre + (" ⚠️" if it.a_confirmar else "") for it in contenido))
+            st.caption("⚠️ = nombre a confirmar (revisar la caja).")
         elif categoria == OFERTAS_ETIQUETA:
             vigentes = [o for o in lista_ofertas if o.vigencia(hoy) != "vencida"]
             st.markdown(f"**{len(lista_ofertas)} productos en oferta** · sin precio cargado: "
