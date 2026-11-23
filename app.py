@@ -1030,15 +1030,15 @@ LOGO_TI = IMAGENES / "logo_ti.png"
 URL_TICKETS = "https://area-t-i-tickets.vercel.app/"
 if LOGO_TI.exists():
     st.markdown(
-        # Colores de Área TI: fondo negro (#0B0B14, el de su página), borde degradé violeta → verde y un brillo suave.
-        f"""<a href="{URL_TICKETS}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center;
-        gap:.7rem; padding:.6rem 1rem; border:2px solid transparent; border-radius:.75rem; text-decoration:none;
-        color:#ffffff; font-weight:600; letter-spacing:.2px;
-        background: linear-gradient(#0B0B14, #0B0B14) padding-box, linear-gradient(90deg, #8B5CF6, #22C55E) border-box;
-        box-shadow: 0 0 12px rgba(139, 92, 246, .35), 0 0 18px rgba(34, 197, 94, .2);">
-        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:2.3rem; width:2.3rem; border-radius:50%;
-        box-shadow: 0 0 0 2px #22C55E;">
-        <span>Reportar incidencia a <span style="color:#A78BFA">Equipo</span> <span style="color:#4ADE80">TI</span></span></a>""",
+        # Colores de Área TI, pero discreto (pedido de Edu): botón chico y centrado, fondo claro,
+        # borde fino degradé violeta → verde y el logo redondo con aro verde.
+        f"""<div style="text-align:center;"><a href="{URL_TICKETS}" target="_blank" rel="noopener" style="display:inline-flex;
+        align-items:center; gap:.4rem; padding:.25rem .7rem; border:1px solid transparent; border-radius:999px;
+        text-decoration:none; color:#31333f; font-size:.82rem; font-weight:500;
+        background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #8B5CF6, #22C55E) border-box;">
+        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:1.2rem; width:1.2rem; border-radius:50%;
+        box-shadow: 0 0 0 1px #22C55E;">
+        <span>Reportar incidencia a <span style="color:#7C3AED">Equipo</span> <span style="color:#16A34A">TI</span></span></a></div>""",
         unsafe_allow_html=True,
     )
 else:
