@@ -856,7 +856,7 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
 
 OFERTAS_ETIQUETA = "💊 Ofertas OTC"
 AYUDA_ETIQUETA = "❓ Ayuda de la app"
-SECCIONES_CON_BOTON = ("5", "6")  # Programas y PICC Elea
+SECCIONES_CON_BOTON = ()  # ninguna sección del .md tiene botón (pedido de Edu); se encuentran escribiendo
 TITULO_AYUDANTE = "Asistente La Esquina"  # no usa IA: busca en los archivos de la carpeta consultas
 CATALOGO_ETIQUETA = "🛍️ Catálogo"
 CAJONES_ETIQUETA = "🗄️ Cajones"
@@ -951,7 +951,6 @@ if consultas.ARCHIVO.exists():
             etiquetas.append(OFERTAS_ETIQUETA)
         if items_cajones:
             etiquetas.append(CAJONES_ETIQUETA)
-        etiquetas.append(AYUDA_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
         if pregunta.strip():
