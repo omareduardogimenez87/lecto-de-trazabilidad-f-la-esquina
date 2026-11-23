@@ -42,6 +42,13 @@ Cada fila guarda: fecha de registro, fecha de la foto (y de dónde salió), usua
 - **App con Android (en internet, sin instalar nada)**: se abre con un link desde el celular y los registros van a una planilla de Google Sheets. Paso a paso en [PUBLICAR_EN_LA_NUBE.md](PUBLICAR_EN_LA_NUBE.md).
 - **App con Windows (en una PC de la farmacia)**: se instala en la PC y los celulares entran por el WiFi local. Los registros quedan en `registros/registros.csv`. Es la guía de abajo.
 
+### 💬 Consultas rápidas del mostrador
+Abajo de las fotos hay una sección **💬 Consultas rápidas** (sin IA, no usa internet). Se escribe una palabra (OSDE, Galeno, Ctrl+V, PICC, "quién trabaja hoy") o se toca una categoría (Obras sociales, Horarios, Promos, Mostrador...). Solo muestra lo que está en [`consultas/Base_Consultas_Mostrador_Mitre.md`](consultas/Base_Consultas_Mostrador_Mitre.md) y sigue sus reglas: lo ⚠️ dice "a confirmar con Germán o la farmacéutica", las promos con fecha "Hasta" pasada salen como **vencida**, las consultas de salud (dosis, para qué sirve) se derivan a la farmacéutica, y si no hay dato lo dice.
+
+**Cada viernes (horario nuevo)**: en el archivo `.md` se cambia la sección **2.1** (período y tabla). Después, en GitHub: abrir la carpeta `consultas` → **Add file → Upload files** → arrastrar el archivo nuevo con **el mismo nombre** → **Commit changes**. La app en la nube se actualiza sola en un par de minutos. Si hoy queda fuera del período cargado, la app responde "Todavía no está cargado el horario de esa fecha".
+
+> Ojo: la app es pública, así que cualquiera con el link ve estos datos (horarios, token, códigos).
+
 ### 📝 Nota u observación
 Al elegir tu nombre aparece **📝 Nota u observación** para dejar algo que haya que cambiar o agregar a la app. Cada uno ve las notas que escribió hasta que cierra la app. **Omar** (`"ve_notas": true` en `usuarios.json`) ve todas, con quién y cuándo, y las borra con **✅ Listo, borrar** a medida que aplica los cambios. Se guardan en la pestaña **Notas** de la planilla (en la PC, `registros/notas.csv`). Opcional: si se agrega `clave_notas = "..."` en Secrets, la app pide esa clave para ver las notas.
 
@@ -98,6 +105,7 @@ lector/gs1.py       interpretar GS1 (DataMatrix) y el texto impreso
 lector/imagen.py    leer la foto: DataMatrix (zxing-cpp), texto (Tesseract), fecha EXIF
 lector/calidad.py   nitidez de la foto y decidir ✅ / ⚠️ / ❌
 lector/registro.py  guardar en CSV y exportar a Excel
+lector/consultas.py consultas rápidas del mostrador (busca en consultas/*.md)
 app.py              la app (Streamlit)
 procesar_carpeta.py procesar una carpeta de fotos desde la terminal
 tests/              pruebas automáticas:  python -m pytest

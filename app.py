@@ -22,7 +22,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import registro
+from lector import consultas, registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, ocr_disponible
@@ -696,6 +696,66 @@ if puede_ver_registros:
                     )
             else:
                 st.caption("Este mes todavía no terminó. Cuando empiece el mes siguiente, vas a poder eliminar su archivo.")
+
+# ------------------------------------------------------------ consultas rápidas del mostrador (sin IA)
+# Busca en consultas/Base_Consultas_Mostrador_Mitre.md. Solo muestra lo que está escrito ahí;
+# el horario se actualiza cada viernes reemplazando ese archivo (ver README).
+@st.cache_data(show_spinner=False)
+def base_de_consultas(_modificado: float):
+    return consultas.leer()
+
+
+def mostrar_horario_de_hoy(base, hoy) -> None:
+    hoy_trabajan = consultas.quien_trabaja(base, hoy)
+    if hoy_trabajan is None:
+        st.info(f"🕒 {consultas.SIN_HORARIO}")
+        return
+    columna, gente = hoy_trabajan
+    st.markdown(f"**🕒 ¿Quién trabaja hoy? ({columna})**")
+    st.markdown("\n".join(f"- **{p}** ({puesto}): {h}" for p, puesto, h in gente))
+
+
+if consultas.ARCHIVO.exists():
+    with st.expander("💬 Consultas rápidas del mostrador"):
+        base = base_de_consultas(consultas.ARCHIVO.stat().st_mtime)
+        hoy = consultas.hoy_argentina()
+        st.caption("Escribí una palabra (ej.: OSDE, Galeno, Ctrl+V, PICC, quién trabaja hoy) o tocá una categoría.")
+        pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
+                                 placeholder="🔎 Buscar: obra social, promo, atajo, sucursal...")
+        st.markdown(
+            "<style>.st-key-categorias [data-testid='stButtonGroup'] button p { font-size: .95rem !important; }"
+            ".st-key-categorias [data-testid='stButtonGroup'] button { min-height: 2.4rem; padding: .3rem .5rem !important; }</style>",
+            unsafe_allow_html=True,
+        )
+        with st.container(key="categorias"):
+            categoria = st.pills("Categorías", [s.etiqueta for s in base.secciones], key="consulta_cat",
+                                 label_visibility="collapsed")
+        if pregunta.strip():
+            r = consultas.buscar(base, pregunta, hoy)
+            if r["salud"]:
+                st.warning(f"👩‍⚕️ {consultas.SALUD}")
+            else:
+                if r["hoy"]:
+                    mostrar_horario_de_hoy(base, hoy)
+                if r["sin_horario"]:
+                    st.info(f"🕒 {consultas.SIN_HORARIO}")
+                for titulo, texto in r["datos"]:
+                    st.markdown(f"<small>{titulo}</small>", unsafe_allow_html=True)
+                    st.markdown(texto)
+                    st.divider()
+                if not (r["datos"] or r["hoy"] or r["sin_horario"]):
+                    st.info(consultas.SIN_DATO)
+        elif categoria:
+            seccion = next(s for s in base.secciones if s.etiqueta == categoria)
+            if seccion.numero == "2":
+                mostrar_horario_de_hoy(base, hoy)
+            contenido = consultas.marcar_promos(seccion.contenido, hoy)
+            if seccion.numero == "2" and not consultas.horario_vigente(base, hoy):
+                # Fuera del período cargado solo se muestran las reglas fijas (2.2).
+                contenido = contenido[contenido.find("### 2.2"):] if "### 2.2" in contenido else ""
+            st.markdown(contenido)
+        st.caption(f"Lo marcado con ⚠️ está {consultas.A_CONFIRMAR}. "
+                   "Las consultas de salud (dosis, para qué sirve) las responde la farmacéutica.")
 
 # ------------------------------------------------------------ notas u observaciones (para mejorar la app)
 # Cualquiera deja una nota. Quien tiene "ve_notas" en usuarios.json (Omar) ve todas y las borra
