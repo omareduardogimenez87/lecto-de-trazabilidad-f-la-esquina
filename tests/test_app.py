@@ -87,3 +87,15 @@ def test_avatares_en_los_botones_y_nombre_solo_en_el_registro(tmp_path, monkeypa
     at.pills[0].set_value("Omar").run()
     next(b for b in at.button if b.key == "guardar_id1").click().run()
     assert list(registro.leer()["usuario"]) == ["Omar"]
+
+
+def test_revisados_sin_columna_estado(tmp_path, monkeypatch):
+    from lector import registro
+
+    monkeypatch.setattr(registro, "ARCHIVO", tmp_path / "registros.csv")
+    registro.guardar([dict(gtin="07795312020770", serie="A1", usuario="Omar", estado="Leído del DataMatrix")])
+    registro.marcar_revisados([("07795312020770", "A1")], "Claudia")
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.pills[0].set_value("Claudia").run()
+    columnas = list(at.tabs[2].dataframe[0].value.columns)
+    assert "Revisado por" in columnas and "Estado" not in columnas

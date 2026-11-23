@@ -31,7 +31,8 @@ USUARIOS = {u["nombre"]: u for u in CONFIG["usuarios"]}
 SUCURSAL = CONFIG.get("sucursal", "")
 CAMPOS = [("gtin", "GTIN (01)"), ("serie", "Serie (21)"), ("lote", "Lote (10)"), ("vencimiento", "Vencimiento"), ("elaboracion", "Elaboración")]
 EN_MAYUSCULAS = ("gtin", "serie", "lote")
-# Columnas que se ven en Registros y salen en el Excel, con su título.
+# Columnas que se ven en Registros y Revisados y salen en el Excel, con su título.
+# "Estado" no se muestra (pedido de Edu), pero se sigue guardando en el registro.
 COLUMNAS_REGISTRO = {
     "gtin": "GTIN",
     "serie": "Serie",
@@ -39,7 +40,6 @@ COLUMNAS_REGISTRO = {
     "vencimiento": "Vencimiento",
     "usuario": "Envió",
     "fecha_foto": "Fecha de la foto",
-    "estado": "Estado",
     "fecha_registro": "Guardado el",
 }
 
@@ -531,9 +531,7 @@ if puede_ver_registros:
         else:
             vista = filtrar(pendientes, "pend")
             st.write(f"{len(vista)} registro(s) pendiente(s).")
-            # En Registros no se muestra "Estado" (pedido de Edu, 22/11/2026). Sigue guardado en el registro.
-            columnas = {k: v for k, v in COLUMNAS_REGISTRO.items() if k != "estado"}
-            tabla = vista[list(columnas)].rename(columns=columnas)
+            tabla = vista[list(COLUMNAS_REGISTRO)].rename(columns=COLUMNAS_REGISTRO)
             tabla.insert(0, "Revisado", False)
             st.write(f"**{usuario['nombre']}**, tildá los que ya viste y confirmaste, y tocá el botón para pasarlos a **Revisados**.")
             editada = st.data_editor(
