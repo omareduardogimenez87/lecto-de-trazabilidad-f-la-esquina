@@ -778,6 +778,9 @@ En Registros y Revisados, el botón **Descargar Excel** baja la lista con el GTI
 with st.expander("❓ Ayuda — preguntas frecuentes"):
     st.markdown(AYUDA)
 
+# Soporte: abre el sistema de tickets del Área TI en otra pestaña.
+st.link_button("🛠️ Soporte Área TI", "https://area-t-i-tickets.vercel.app/", use_container_width=True)
+
 # ------------------------------------------------------------ pie de página (marca de agua)
 # Leyenda al final de la app, en gris y letra chica, visible en todas las pantallas.
 st.markdown(

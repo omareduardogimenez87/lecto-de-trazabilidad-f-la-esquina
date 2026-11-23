@@ -48,6 +48,9 @@ Al elegir tu nombre aparece **📝 Nota u observación** para dejar algo que hay
 ### ❓ Ayuda
 Al final de la app hay una sección **❓ Ayuda** con preguntas frecuentes y respuestas cortas (sin IA, no usa internet): cómo cargar un envase, qué significan ✅/⚠️/❌, foto que no se lee, duplicados, Registros/Revisados, archivar o eliminar un mes y descargar el Excel.
 
+### 🛠️ Soporte Área TI
+Al final de la app hay un botón **🛠️ Soporte Área TI** que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña.
+
 ## Cómo se instala (paso a paso, en Windows)
 
 Se hace una sola vez, en la computadora de la farmacia que va a hacer de "servidor".

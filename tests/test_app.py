@@ -194,3 +194,10 @@ def test_notas_solo_omar_las_ve_y_borra(tmp_path, monkeypatch):
     assert len(botones) == 1
     botones[0].click().run()
     assert registro.leer_notas().empty
+
+
+def test_boton_soporte_area_ti():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    assert not at.exception
+    botones = [b for b in at.get("link_button") if "Soporte" in b.proto.label]
+    assert botones and botones[0].proto.url == "https://area-t-i-tickets.vercel.app/"
