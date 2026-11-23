@@ -73,3 +73,17 @@ def test_guardar_varias_fotos_menos_las_malas(tmp_path, monkeypatch):
     assert not at.exception
     assert sorted(registro.leer()["serie"]) == ["S1", "S2"]
     assert [it["archivo_foto"] for it in at.session_state["items"]] == ["foto3.jpg"]
+
+
+def test_avatares_en_los_botones_y_nombre_solo_en_el_registro(tmp_path, monkeypatch):
+    from lector import registro
+    from lector.calidad import ESTADO_OK
+
+    monkeypatch.setattr(registro, "ARCHIVO", tmp_path / "registros.csv")
+    at = AppTest.from_file(APP, default_timeout=60)
+    at.session_state["items"] = [_item(1, ESTADO_OK)]
+    at.run()
+    assert at.pills[0].format_func("Claudia") == "👱🏻‍♀️ Claudia"
+    at.pills[0].set_value("Omar").run()
+    next(b for b in at.button if b.key == "guardar_id1").click().run()
+    assert list(registro.leer()["usuario"]) == ["Omar"]

@@ -148,7 +148,14 @@ st.session_state.setdefault("leidas", set())  # huellas de las fotos ya leídas 
 
 # ------------------------------------------------------------ ¿quién usa la app?
 # Los nombres salen en el orden de usuarios.json.
-nombre = st.pills("¿Quién sos? Tocá tu nombre", list(USUARIOS), selection_mode="single", key="usuario")
+# El avatar (emoji) solo se ve en el botón; en los registros se guarda el nombre solo.
+nombre = st.pills(
+    "¿Quién sos? Tocá tu nombre",
+    list(USUARIOS),
+    selection_mode="single",
+    key="usuario",
+    format_func=lambda n: f"{USUARIOS[n].get('avatar', '')} {n}".strip(),
+)
 usuario = USUARIOS.get(nombre)
 es_farmaceutica = bool(usuario and usuario["rol"].lower().startswith("farmac"))
 
