@@ -20,6 +20,8 @@ import re
 import uuid
 from pathlib import Path
 
+from urllib.parse import quote
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -61,6 +63,16 @@ st.set_page_config(
     page_icon=str(ICONO_APP) if ICONO_APP.exists() else (str(ICONO) if ICONO.exists() else "💊"),
     layout="wide",
     initial_sidebar_state="collapsed",
+)
+
+# Fondo de la app: degradado lima-crema-lila (colores de la marca, más cálido que el blanco).
+st.markdown(
+    """<style>
+    [data-testid="stApp"] { background: linear-gradient(180deg, #F8FBEA 0%, #FBF8EE 45%, #F4EEFA 100%) !important;
+                            background-attachment: fixed !important; }
+    [data-testid="stHeader"] { background: transparent !important; }
+    </style>""",
+    unsafe_allow_html=True,
 )
 
 # Ícono para "Agregar a la pantalla de inicio" del celular (Streamlit no trae opción para esto).
@@ -1112,6 +1124,114 @@ if LOGO_TI.exists():
     )
 else:
     st.link_button("Reportar incidencia a Equipo TI", URL_TICKETS, use_container_width=True)
+
+# Acceso a la página oficial, con los colores de la web (verde lima, amarillo y violeta) y la cruz de La Esquina.
+URL_WEB = "https://farmacialaesquina.com.ar/"
+cruz = (f'<img src="data:image/png;base64,{en_base64(ICONO)}" alt="" style="height:1.6rem; width:1.6rem;">'
+        if ICONO.exists() else "🌐")
+st.markdown(
+    f"""<div style="text-align:center; margin-top:.6rem;"><a href="{URL_WEB}" target="_blank" rel="noopener" style="display:inline-flex;
+    align-items:center; gap:.5rem; padding:.35rem .95rem; border:1px solid transparent; border-radius:999px;
+    text-decoration:none; color:#31333f; font-size:1.05rem; font-weight:500;
+    background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #BFCD3A, #FFF212, #8B5A9E) border-box;">
+    {cruz}<span>Página oficial <span style="color:#8B5A9E; font-weight:700;">Farmacia La Esquina</span></span></a></div>""",
+    unsafe_allow_html=True,
+)
+
+# Enviar para imprimir: primero la foto (cámara o galería) y después el menú "Compartir" del celular,
+# donde se elige WhatsApp o Gmail y el contacto de la Mitre. wa.me y mailto no pueden adjuntar archivos.
+ENVIAR_PARA_IMPRIMIR = """
+<style>
+  body { margin:0; font-family: "Source Sans Pro", sans-serif; text-align:center; color:#31333f; }
+  .caja { border:1px solid #d9cbe3; border-radius:14px; padding:.6rem .6rem .7rem; background:#ffffffcc; }
+  .tit { font-weight:700; color:#8B5A9E; margin-bottom:.45rem; }
+  .fila { display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; }
+  label, button { font:inherit; font-size:.95rem; border-radius:999px; padding:.35rem .9rem; cursor:pointer;
+                  border:1px solid #BFCD3A; background:#F8FBEA; color:#31333f; }
+  button#enviar { background:#25D366; border-color:#25D366; color:#fff; font-weight:700; }
+  button#enviar:disabled { background:#e6e6e6; border-color:#e6e6e6; color:#999; cursor:default; }
+  input { display:none; }
+  .nota { font-size:.8rem; color:#777; margin-top:.4rem; }
+  .ok { color:#16A34A; } .mal { color:#c0392b; }
+</style>
+<div class="caja">
+  <div class="tit">📤 Enviar para imprimir</div>
+  <div class="fila">
+    <label>📷 Sacar foto<input id="cam" type="file" accept="image/*" capture="environment"></label>
+    <label>🖼️ Galería o archivo<input id="gal" type="file" accept="image/*,application/pdf" multiple></label>
+    <button id="enviar" disabled>Enviar</button>
+  </div>
+  <div class="nota" id="nota">1) Sacá o elegí el archivo · 2) Tocá Enviar y elegí WhatsApp o Gmail y el contacto de la Mitre.</div>
+</div>
+<script>
+  const TEXTO = "Te comparto un archivo para imprimir";
+  let archivos = [];
+  const nota = document.getElementById("nota"), enviar = document.getElementById("enviar");
+  function elegidos(ev) {
+    archivos = Array.from(ev.target.files || []);
+    if (!archivos.length) return;
+    enviar.disabled = false;
+    nota.className = "nota ok";
+    nota.textContent = "✅ " + (archivos.length === 1 ? archivos[0].name : archivos.length + " archivos") + " listo. Tocá Enviar.";
+  }
+  document.getElementById("cam").addEventListener("change", elegidos);
+  document.getElementById("gal").addEventListener("change", elegidos);
+  enviar.addEventListener("click", async () => {
+    const datos = { files: archivos, text: TEXTO, title: "Archivo para imprimir" };
+    if (!navigator.canShare || !navigator.canShare({ files: archivos })) {
+      nota.className = "nota mal";
+      nota.textContent = "⚠️ Este navegador no permite compartir archivos. Usá Chrome en el celular, o los botones de WhatsApp y correo de abajo y adjuntá el archivo a mano.";
+      return;
+    }
+    try {
+      await navigator.share(datos);
+      nota.className = "nota ok"; nota.textContent = "✅ Enviado. Podés sacar otra foto.";
+      archivos = []; enviar.disabled = true;
+    } catch (e) {
+      if (e.name !== "AbortError") { nota.className = "nota mal"; nota.textContent = "⚠️ No se pudo compartir: " + e.message; }
+    }
+  });
+</script>
+"""
+components.html(ENVIAR_PARA_IMPRIMIR, height=172)
+
+# WhatsApp de la sucursal Mitre, con el mensaje ya escrito.
+# Por defecto, los de la Mitre. Para probar con otros datos, en Secrets:
+#   whatsapp_destino = "3856210820"   (con o sin +54 9: la app agrega el 549 si falta)
+#   correo_destino = "alguien@ejemplo.com"
+def numero_whatsapp(texto: str) -> str:
+    """Deja el número como lo pide wa.me: 549 + característica + número. Agrega el 549 si falta."""
+    n = "".join(c for c in str(texto) if c.isdigit())
+    if n.startswith("54"):
+        n = n[2:]
+    n = n.removeprefix("9").removeprefix("0")
+    return "549" + n
+
+
+WHATSAPP_DESTINO = numero_whatsapp(secretos().get("whatsapp_destino", "") or "3854750195")
+CORREO_DESTINO = str(secretos().get("correo_destino", "") or "esquinamitre@fesquina.com.ar").strip()
+URL_WHATSAPP = f"https://wa.me/{WHATSAPP_DESTINO}?text=" + quote("Te comparto un archivo para imprimir")
+LOGO_WHATSAPP = (
+    '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path fill="#25D366" d="M16 3C9 3 3.3 8.7 3.3 15.7c0 2.2.6 4.4 1.7 6.3L3.2 28.8l7-1.8c1.8 1 3.8 1.5 5.8 1.5 7 0 12.7-5.7 12.7-12.7S23 3 16 3z"/>'
+    '<path fill="#fff" d="M22.6 19.1c-.4-.2-2.1-1-2.4-1.1-.3-.1-.6-.2-.8.2-.2.4-.9 1.1-1.1 1.3-.2.2-.4.3-.8.1-.4-.2-1.6-.6-3-1.9-1.1-1-1.9-2.2-2.1-2.6-.2-.4 0-.6.2-.8l.6-.7c.2-.2.3-.4.4-.6.1-.3.1-.5 0-.7l-1.1-2.6c-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.6.1-1 .5-.3.4-1.3 1.3-1.3 3.1s1.3 3.6 1.5 3.9c.2.2 2.6 4 6.3 5.6 2.2.9 3 1 4.1.8.7-.1 2.1-.9 2.4-1.7.3-.8.3-1.6.2-1.7-.1-.2-.3-.3-.7-.5z"/></svg>'
+)
+st.markdown(
+    f"""<div style="text-align:center; margin-top:.6rem;"><a href="{URL_WHATSAPP}" target="_blank" rel="noopener" style="display:inline-flex;
+    align-items:center; gap:.5rem; padding:.35rem .95rem; border:1px solid #25D366; border-radius:999px;
+    text-decoration:none; color:#075E54; font-size:1.05rem; font-weight:500; background:#ffffff;">
+    {LOGO_WHATSAPP}<span>WhatsApp <span style="color:#128C7E; font-weight:700;">Sucursal Mitre</span></span></a></div>""",
+    unsafe_allow_html=True,
+)
+
+# Correo de la sucursal, con asunto y mensaje ya escritos.
+URL_CORREO = f"mailto:{CORREO_DESTINO}?subject=" + quote("Archivos para imprimir") + "&body=" + quote("Te adjunto archivos para imprimir")
+st.markdown(
+    f"""<div style="text-align:center; margin-top:.6rem;"><a href="{URL_CORREO}" style="display:inline-flex;
+    align-items:center; gap:.5rem; padding:.35rem .95rem; border:1px solid #4285F4; border-radius:999px;
+    text-decoration:none; color:#31333f; font-size:1.05rem; font-weight:500; background:#ffffff;">
+    <span style="font-size:1.3rem;">✉️</span><span>Correo <span style="color:#1A73E8; font-weight:700;">{CORREO_DESTINO}</span></span></a></div>""",
+    unsafe_allow_html=True,
+)
 
 # ------------------------------------------------------------ pie de página (marca de agua)
 # Leyenda al final de la app, en gris y letra chica, visible en todas las pantallas.
