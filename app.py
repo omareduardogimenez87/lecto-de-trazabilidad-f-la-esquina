@@ -16,16 +16,17 @@ import contextlib
 import hashlib
 import io
 import json
+import re
 import uuid
 from pathlib import Path
 
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import consultas, registro
+from lector import consultas, ofertas, registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
-from lector.imagen import abrir, analizar, fecha_de_la_foto, ocr_disponible
+from lector.imagen import abrir, analizar, fecha_de_la_foto, leer_codigos_de_producto, ocr_disponible
 
 CONFIG = json.loads((Path(__file__).parent / "usuarios.json").read_text(encoding="utf-8"))
 USUARIOS = {u["nombre"]: u for u in CONFIG["usuarios"]}
@@ -715,36 +716,116 @@ def mostrar_horario_de_hoy(base, hoy) -> None:
     st.markdown("\n".join(f"- **{p}** ({puesto}): {h}" for p, puesto, h in gente))
 
 
+@st.cache_data(show_spinner=False)
+def ofertas_otc(_modificado: float):
+    return ofertas.leer() if ofertas.ARCHIVO.exists() else []
+
+
+OFERTAS_ETIQUETA = "💊 Ofertas OTC"
+
+
+def mostrar_ofertas(lista, hoy) -> None:
+    for o in lista:
+        st.markdown(ofertas.ficha(o, hoy))
+        st.divider()
+
+
+def responder_codigo(codigo: str, base, lista, hoy) -> None:
+    """Qué hay cargado para un código de barras: oferta OTC o dato de la base (ej. PICC)."""
+    encontradas = ofertas.por_codigo(lista, codigo)
+    if encontradas:
+        mostrar_ofertas(encontradas, hoy)
+        return
+    datos = consultas.buscar(base, codigo, hoy)["datos"]
+    if datos:
+        for titulo, texto in datos:
+            st.markdown(f"<small>{titulo}</small>", unsafe_allow_html=True)
+            st.markdown(texto)
+        return
+    st.info(f"🔎 Código {codigo}: {ofertas.NO_CARGADO}")
+
+
 if consultas.ARCHIVO.exists():
     with st.expander("💬 Consultas rápidas del mostrador"):
         base = base_de_consultas(consultas.ARCHIVO.stat().st_mtime)
+        lista_ofertas = ofertas_otc(ofertas.ARCHIVO.stat().st_mtime if ofertas.ARCHIVO.exists() else 0)
         hoy = consultas.hoy_argentina()
-        st.caption("Escribí una palabra (ej.: OSDE, Galeno, Ctrl+V, PICC, quién trabaja hoy) o tocá una categoría.")
+
+        # Lector de código de barras: foto del producto -> oferta, precio o dato cargado.
+        st.markdown("**📷 Leer código de barras**")
+        st.session_state.setdefault("ronda_codigo", 0)
+        foto_codigo = st.file_uploader(
+            "Foto del código de barras", type=TIPOS_FOTO, key=f"foto_codigo_{st.session_state['ronda_codigo']}",
+            label_visibility="collapsed",
+        )
+        if foto_codigo is not None:
+            try:
+                codigos = leer_codigos_de_producto(abrir(foto_codigo))
+            except Exception:
+                codigos = []
+            if not codigos:
+                st.warning("No se pudo leer el código de barras. Sacá la foto de cerca, derecha y con buena luz, "
+                           "o escribí el número en el buscador.")
+            for codigo in codigos:
+                responder_codigo(codigo, base, lista_ofertas, hoy)
+            if st.button("🧹 Limpiar foto", key="limpiar_codigo"):
+                st.session_state["ronda_codigo"] += 1
+                st.rerun()
+
+        st.markdown("**🔎 Buscar**")
+        st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, Ctrl+V, PICC, quién trabaja hoy) "
+                   "o tocá una categoría.")
         pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
-                                 placeholder="🔎 Buscar: obra social, promo, atajo, sucursal...")
+                                 placeholder="🔎 Buscar: obra social, producto, promo, atajo...")
         st.markdown(
             "<style>.st-key-categorias [data-testid='stButtonGroup'] button p { font-size: .95rem !important; }"
             ".st-key-categorias [data-testid='stButtonGroup'] button { min-height: 2.4rem; padding: .3rem .5rem !important; }</style>",
             unsafe_allow_html=True,
         )
+        etiquetas = [s.etiqueta for s in base.secciones]
+        if lista_ofertas:
+            etiquetas.insert(next((i + 1 for i, s in enumerate(base.secciones) if s.numero == "7"), len(etiquetas)),
+                             OFERTAS_ETIQUETA)
         with st.container(key="categorias"):
-            categoria = st.pills("Categorías", [s.etiqueta for s in base.secciones], key="consulta_cat",
-                                 label_visibility="collapsed")
+            categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
         if pregunta.strip():
             r = consultas.buscar(base, pregunta, hoy)
             if r["salud"]:
                 st.warning(f"👩‍⚕️ {consultas.SALUD}")
             else:
+                encontradas = ofertas.buscar(lista_ofertas, pregunta)
                 if r["hoy"]:
                     mostrar_horario_de_hoy(base, hoy)
                 if r["sin_horario"]:
                     st.info(f"🕒 {consultas.SIN_HORARIO}")
+                if encontradas:
+                    st.markdown("<small>Ofertas OTC</small>", unsafe_allow_html=True)
+                    mostrar_ofertas(encontradas, hoy)
                 for titulo, texto in r["datos"]:
                     st.markdown(f"<small>{titulo}</small>", unsafe_allow_html=True)
                     st.markdown(texto)
                     st.divider()
-                if not (r["datos"] or r["hoy"] or r["sin_horario"]):
-                    st.info(consultas.SIN_DATO)
+                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas):
+                    if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
+                        st.info(f"🔎 {ofertas.NO_CARGADO}")
+                    else:
+                        st.info(consultas.SIN_DATO)
+        elif categoria == OFERTAS_ETIQUETA:
+            vigentes = [o for o in lista_ofertas if o.vigencia(hoy) != "vencida"]
+            st.markdown(f"**{len(lista_ofertas)} productos en oferta** · sin precio cargado: "
+                        f"{sum(1 for o in lista_ofertas if o.precio is None)}")
+            if len(vigentes) < len(lista_ofertas):
+                st.warning(f"❌ {len(lista_ofertas) - len(vigentes)} ofertas ya están vencidas.")
+            st.dataframe(
+                [{
+                    "Producto": f"{o.producto} {o.presentacion}".strip(),
+                    "Oferta": o.texto_oferta(),
+                    "Hasta": (o.hasta.strftime("%d/%m/%Y") if o.hasta else "—") + ("" if o.vigencia(hoy) == "vigente" else f" ({o.vigencia(hoy)})"),
+                    "Paga el cliente": ofertas.pesos(o.paga_el_cliente()) if o.precio is not None else ofertas.SIN_PRECIO,
+                    "Código": o.codigo,
+                } for o in lista_ofertas],
+                hide_index=True, use_container_width=True,
+            )
         elif categoria:
             seccion = next(s for s in base.secciones if s.etiqueta == categoria)
             if seccion.numero == "2":

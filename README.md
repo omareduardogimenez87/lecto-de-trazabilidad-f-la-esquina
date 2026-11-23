@@ -47,6 +47,8 @@ Abajo de las fotos hay una sección **💬 Consultas rápidas** (sin IA, no usa 
 
 **Cada viernes (horario nuevo)**: en el archivo `.md` se cambia la sección **2.1** (período y tabla). Después, en GitHub: abrir la carpeta `consultas` → **Add file → Upload files** → arrastrar el archivo nuevo con **el mismo nombre** → **Commit changes**. La app en la nube se actualiza sola en un par de minutos. Si hoy queda fuera del período cargado, la app responde "Todavía no está cargado el horario de esa fecha".
 
+**📷 Leer código de barras**: en Consultas se saca una foto del código de barras (o del DataMatrix) y la app muestra la oferta del producto, hasta cuándo vale y cuánto paga el cliente. Los datos salen de [`consultas/Ofertas_OTC_completo.xlsx`](consultas/Ofertas_OTC_completo.xlsx). Si el producto no tiene "Precio regular" dice "sin precio cargado"; si el código no está, "Producto no cargado". La categoría **💊 Ofertas OTC** muestra la lista completa. Para cargar precios o una oferta nueva, se edita el Excel y se sube igual que el `.md` (mismo nombre, carpeta `consultas`).
+
 > Ojo: la app es pública, así que cualquiera con el link ve estos datos (horarios, token, códigos).
 
 ### 📝 Nota u observación
@@ -106,6 +108,7 @@ lector/imagen.py    leer la foto: DataMatrix (zxing-cpp), texto (Tesseract), fec
 lector/calidad.py   nitidez de la foto y decidir ✅ / ⚠️ / ❌
 lector/registro.py  guardar en CSV y exportar a Excel
 lector/consultas.py consultas rápidas del mostrador (busca en consultas/*.md)
+lector/ofertas.py   ofertas OTC del Excel (consultas/Ofertas_OTC_completo.xlsx)
 app.py              la app (Streamlit)
 procesar_carpeta.py procesar una carpeta de fotos desde la terminal
 tests/              pruebas automáticas:  python -m pytest

@@ -14,3 +14,4 @@ __pycache__/
 .venv/
 .streamlit/secrets.toml
 !imagenes/*.png
+!consultas/*.xlsx
