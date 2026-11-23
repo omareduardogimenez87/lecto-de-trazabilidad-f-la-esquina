@@ -168,3 +168,9 @@ def test_botones_de_foto_visibles_sin_nombre_y_pie_de_pagina():
     assert any(k and k.startswith("camara") for k in claves)
     assert any(k and k.startswith("galeria") for k in claves)
     assert any("Omar Eduardo Giménez" in m.value for m in at.markdown)
+
+
+def test_hay_ayuda_sin_ia():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    assert not at.exception
+    assert any("Ayuda" in e.label for e in at.expander)

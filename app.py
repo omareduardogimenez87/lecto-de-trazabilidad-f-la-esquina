@@ -690,6 +690,38 @@ if puede_ver_registros:
             else:
                 st.caption("Este mes todavía no terminó. Cuando empiece el mes siguiente, vas a poder eliminar su archivo.")
 
+# ------------------------------------------------------------ ayuda (preguntas frecuentes, sin IA)
+AYUDA = """
+**📷 ¿Cómo cargo un envase?**
+Tocá tu nombre arriba. Después tocá **Sacar foto** (abre la cámara) o **Galería** (elegís una foto que ya tenés). La app la lee sola, no hace falta tocar nada más.
+
+**✅ ⚠️ ❌ ¿Qué significan?**
+- **✅ Lista**: se leyó del cuadradito (DataMatrix) y es exacta. Se guarda sola.
+- **⚠️ Revisar**: se leyó del texto impreso. Puede tener algún error, así que compará con el envase y tocá **Guardar**.
+- **❌ Sacar otra foto**: no se pudo leer bien. Sacá otra foto más de cerca y con buena luz.
+
+**📸 La foto no se lee, ¿qué hago?**
+Sacá otra: un solo envase, de cerca, con buena luz, sin reflejos y **sin marcar ni tapar** el cuadradito.
+
+**🔁 Me avisa que ya estaba cargado.**
+Ese envase (mismo código y serie) ya se había registrado. Elegí **Reemplazar** (si querés dejar los datos nuevos) o **Descartar** (si dejás el anterior).
+
+**👀 ¿Dónde veo lo cargado? (solo farmacéuticas)**
+En **Registros** está lo que cargó el equipo y falta revisar. **Seleccionar todo** tilda todos, y **Pasar a Revisados** mueve los tildados a la pestaña **Revisados**.
+
+**📦 Archivar por mes (Revisados)**
+Guarda todos los revisados en un archivo de su mes y limpia la lista. No se pierde nada: cada mes se puede ver y bajar en **Excel** abajo, en **Meses archivados**.
+
+**🗑️ Eliminar**
+Borra para siempre y no se puede deshacer, por eso pregunta dos veces. Si querés conservar los datos, usá **Archivar por mes** en vez de eliminar. Bajá el Excel antes de borrar.
+
+**⬇️ Descargar Excel**
+En Registros y Revisados, el botón **Descargar Excel** baja la lista con el GTIN y la serie completos.
+"""
+
+with st.expander("❓ Ayuda — preguntas frecuentes"):
+    st.markdown(AYUDA)
+
 # ------------------------------------------------------------ pie de página (marca de agua)
 # Leyenda al final de la app, en gris y letra chica, visible en todas las pantallas.
 st.markdown(

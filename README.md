@@ -42,6 +42,9 @@ Cada fila guarda: fecha de registro, fecha de la foto (y de dónde salió), usua
 - **App con Android (en internet, sin instalar nada)**: se abre con un link desde el celular y los registros van a una planilla de Google Sheets. Paso a paso en [PUBLICAR_EN_LA_NUBE.md](PUBLICAR_EN_LA_NUBE.md).
 - **App con Windows (en una PC de la farmacia)**: se instala en la PC y los celulares entran por el WiFi local. Los registros quedan en `registros/registros.csv`. Es la guía de abajo.
 
+### ❓ Ayuda
+Al final de la app hay una sección **❓ Ayuda** con preguntas frecuentes y respuestas cortas (sin IA, no usa internet): cómo cargar un envase, qué significan ✅/⚠️/❌, foto que no se lee, duplicados, Registros/Revisados, archivar o eliminar un mes y descargar el Excel.
+
 ## Cómo se instala (paso a paso, en Windows)
 
 Se hace una sola vez, en la computadora de la farmacia que va a hacer de "servidor".
