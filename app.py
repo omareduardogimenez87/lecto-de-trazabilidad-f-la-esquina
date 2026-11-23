@@ -1030,15 +1030,19 @@ LOGO_TI = IMAGENES / "logo_ti.png"
 URL_TICKETS = "https://area-t-i-tickets.vercel.app/"
 if LOGO_TI.exists():
     st.markdown(
+        # Colores de Área TI: fondo negro (#0B0B14, el de su página), borde degradé violeta → verde y un brillo suave.
         f"""<a href="{URL_TICKETS}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center;
-        gap:.6rem; padding:.5rem 1rem; border:1px solid rgba(49,51,63,.2); border-radius:.5rem; text-decoration:none;
-        color:inherit; font-weight:500;">
-        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:2.2rem; width:2.2rem; border-radius:50%;">
-        Acceso a Incidencias Equipo TI</a>""",
+        gap:.7rem; padding:.6rem 1rem; border:2px solid transparent; border-radius:.75rem; text-decoration:none;
+        color:#ffffff; font-weight:600; letter-spacing:.2px;
+        background: linear-gradient(#0B0B14, #0B0B14) padding-box, linear-gradient(90deg, #8B5CF6, #22C55E) border-box;
+        box-shadow: 0 0 12px rgba(139, 92, 246, .35), 0 0 18px rgba(34, 197, 94, .2);">
+        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:2.3rem; width:2.3rem; border-radius:50%;
+        box-shadow: 0 0 0 2px #22C55E;">
+        <span>Reportar incidencia a <span style="color:#A78BFA">Equipo</span> <span style="color:#4ADE80">TI</span></span></a>""",
         unsafe_allow_html=True,
     )
 else:
-    st.link_button("Acceso a Incidencias Equipo TI", URL_TICKETS, use_container_width=True)
+    st.link_button("Reportar incidencia a Equipo TI", URL_TICKETS, use_container_width=True)
 
 # ------------------------------------------------------------ pie de página (marca de agua)
 # Leyenda al final de la app, en gris y letra chica, visible en todas las pantallas.
