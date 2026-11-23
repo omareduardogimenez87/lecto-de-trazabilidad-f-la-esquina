@@ -242,7 +242,7 @@ def guardar_varios(lista: list[dict]) -> None:
         cerrar_tarjeta(it, None)
         guardadas += 1
     if guardadas:
-        st.session_state["avisos"].append(("success", f"✅ Se guardaron {guardadas} foto(s)."))
+        st.session_state["avisos"].append(("success", f"✅ Se guardaron correctamente {guardadas} foto(s)."))
     duplicadas = len(lista) - guardadas
     if duplicadas:
         st.session_state["avisos"].append(
@@ -407,6 +407,23 @@ with tab_leer:
                         st.session_state["items"] += procesar(contenido, foto.name)
                     except Exception as e:
                         st.error(f"No se pudo abrir {foto.name}: {e}")
+            # Guardado automático (pedido de Edu, 23/11/2026): las que se leyeron del DataMatrix
+            # (✅, exactas) se guardan solas. Las ⚠️ esperan que alguien las compare con el envase,
+            # y las ❌ piden otra foto.
+            nuevos = [it for it in st.session_state["items"] if it.get("auto") is None]
+            for it in nuevos:
+                it["auto"] = True
+            listas = [it for it in nuevos if it["estado"] == ESTADO_OK and se_puede_guardar_junto(it)]
+            malas = [it for it in nuevos if it["estado"] == ESTADO_OTRA_FOTO or faltantes(datos_de(it))]
+            if listas:
+                guardar_varios(listas)
+            if malas:
+                nombres = ", ".join(f"**{it['archivo_foto']}**" for it in malas)
+                st.session_state["avisos"].append(
+                    ("error", f"❌ No se pudo leer bien: {nombres}. **Sacá otra foto de ese envase** (está abajo, marcado con ❌).")
+                )
+            if listas or malas:
+                st.rerun()
 
     items = st.session_state["items"] if usuario else []
 
