@@ -206,3 +206,26 @@ def test_eliminar_mes_en_google_sheets():
         assert [h.title for h in libro.hojas] == ["Hoja 1"]
     finally:
         registro.usar_planilla(None)
+
+
+def test_notas_en_csv(tmp_path):
+    archivo = tmp_path / "registros.csv"
+    a = registro.guardar_nota("Yessi", "Botón más grande", archivo)
+    registro.guardar_nota("Maxi", "Otra cosa", archivo)
+    notas = registro.leer_notas(archivo)
+    assert list(notas["usuario"]) == ["Maxi", "Yessi"]  # la más nueva primero
+    registro.borrar_nota(a["id"], archivo)
+    assert list(registro.leer_notas(archivo)["nota"]) == ["Otra cosa"]
+
+
+def test_notas_en_google_sheets():
+    libro = LibroFalso()
+    registro.usar_planilla(libro.add_worksheet("Hoja 1", 1000, 18))
+    try:
+        n = registro.guardar_nota("Silvia", "Hola")
+        assert [h.title for h in libro.hojas] == ["Hoja 1", "Notas"]
+        assert list(registro.leer_notas()["nota"]) == ["Hola"]
+        registro.borrar_nota(n["id"])
+        assert registro.leer_notas().empty
+    finally:
+        registro.usar_planilla(None)

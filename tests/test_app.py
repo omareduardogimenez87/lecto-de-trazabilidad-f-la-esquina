@@ -174,3 +174,23 @@ def test_hay_ayuda_sin_ia():
     at = AppTest.from_file(APP, default_timeout=60).run()
     assert not at.exception
     assert any("Ayuda" in e.label for e in at.expander)
+
+
+def test_notas_solo_omar_las_ve_y_borra(tmp_path, monkeypatch):
+    from lector import registro
+
+    monkeypatch.setattr(registro, "ARCHIVO", tmp_path / "registros.csv")
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.pills[0].set_value("Yessi").run()
+    at.text_area(key="texto_nota").input("Que el botón sea violeta").run()
+    at.button(key="btn_nota").click().run()
+    assert not at.exception
+    assert any("Que el botón sea violeta" in m.value for m in at.markdown)  # Yessi ve la suya
+    assert not any(b.key and b.key.startswith("borrar_nota_") for b in at.button)  # pero no puede borrar
+
+    at2 = AppTest.from_file(APP, default_timeout=60).run()
+    at2.pills[0].set_value("Omar").run()
+    botones = [b for b in at2.button if b.key and b.key.startswith("borrar_nota_")]
+    assert len(botones) == 1
+    botones[0].click().run()
+    assert registro.leer_notas().empty

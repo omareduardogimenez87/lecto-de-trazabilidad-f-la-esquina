@@ -42,6 +42,9 @@ Cada fila guarda: fecha de registro, fecha de la foto (y de dónde salió), usua
 - **App con Android (en internet, sin instalar nada)**: se abre con un link desde el celular y los registros van a una planilla de Google Sheets. Paso a paso en [PUBLICAR_EN_LA_NUBE.md](PUBLICAR_EN_LA_NUBE.md).
 - **App con Windows (en una PC de la farmacia)**: se instala en la PC y los celulares entran por el WiFi local. Los registros quedan en `registros/registros.csv`. Es la guía de abajo.
 
+### 📝 Nota u observación
+Al elegir tu nombre aparece **📝 Nota u observación** para dejar algo que haya que cambiar o agregar a la app. Cada uno ve las notas que escribió hasta que cierra la app. **Omar** (`"ve_notas": true` en `usuarios.json`) ve todas, con quién y cuándo, y las borra con **✅ Listo, borrar** a medida que aplica los cambios. Se guardan en la pestaña **Notas** de la planilla (en la PC, `registros/notas.csv`). Opcional: si se agrega `clave_notas = "..."` en Secrets, la app pide esa clave para ver las notas.
+
 ### ❓ Ayuda
 Al final de la app hay una sección **❓ Ayuda** con preguntas frecuentes y respuestas cortas (sin IA, no usa internet): cómo cargar un envase, qué significan ✅/⚠️/❌, foto que no se lee, duplicados, Registros/Revisados, archivar o eliminar un mes y descargar el Excel.
 

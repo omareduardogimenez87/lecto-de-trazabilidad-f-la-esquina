@@ -6,6 +6,6 @@
     {"nombre": "Silvia", "rol": "Mostrador", "avatar": "👩🏼"},
     {"nombre": "Yessi", "rol": "Mostrador", "avatar": "👩🏻"},
     {"nombre": "Maxi", "rol": "Mostrador", "avatar": "🧔🏻‍♂️"},
-    {"nombre": "Omar", "rol": "Mostrador", "avatar": "👦🏽"}
+    {"nombre": "Omar", "rol": "Mostrador", "avatar": "👦🏽", "ve_notas": true}
   ]
 }

@@ -352,6 +352,78 @@ def _buscar_en_archivo(gtin: str, serie: str, archivo) -> dict | None:
     return None
 
 
+# ------------------------------------------------------------ notas u observaciones para mejorar la app
+# Cada usuario puede dejar una nota (algo para cambiar o agregar). Solo Omar las ve todas y las borra.
+# En la PC: registros/notas.csv · En la nube: pestaña "Notas" de la planilla.
+
+COLUMNAS_NOTAS = ["id", "fecha", "usuario", "nota"]
+PESTANA_NOTAS = "Notas"
+
+
+def _lugar_notas(archivo=None, crear: bool = False):
+    archivo = _destino(archivo)
+    if isinstance(archivo, Path):
+        return archivo.parent / "notas.csv"
+    libro = archivo.spreadsheet
+    for hoja in libro.worksheets():
+        if hoja.title == PESTANA_NOTAS:
+            return hoja
+    return libro.add_worksheet(title=PESTANA_NOTAS, rows=500, cols=len(COLUMNAS_NOTAS)) if crear else None
+
+
+def leer_notas(archivo=None) -> pd.DataFrame:
+    """Todas las notas, de la más nueva a la más vieja."""
+    lugar = _lugar_notas(archivo)
+    if lugar is None:
+        return pd.DataFrame(columns=COLUMNAS_NOTAS)
+    if isinstance(lugar, Path):
+        if not lugar.exists():
+            return pd.DataFrame(columns=COLUMNAS_NOTAS)
+        df = pd.read_csv(lugar, sep=";", encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    else:
+        valores = lugar.get_all_values()
+        if not valores:
+            return pd.DataFrame(columns=COLUMNAS_NOTAS)
+        filas = [f + [""] * (len(valores[0]) - len(f)) for f in valores[1:]]
+        df = pd.DataFrame(filas, columns=valores[0], dtype=str)
+    return df.reindex(columns=COLUMNAS_NOTAS, fill_value="").iloc[::-1].reset_index(drop=True)
+
+
+def guardar_nota(usuario: str, texto: str, archivo=None) -> dict:
+    """Guarda una nota nueva y la devuelve (con su id, para poder mostrarla después)."""
+    import uuid
+
+    nota = {"id": uuid.uuid4().hex[:10], "fecha": ahora().strftime(FORMATO_FECHA), "usuario": usuario, "nota": texto.strip()}
+    lugar = _lugar_notas(archivo, crear=True)
+    if isinstance(lugar, Path):
+        lugar.parent.mkdir(parents=True, exist_ok=True)
+        nuevo = not lugar.exists()
+        with open(lugar, "a", newline="", encoding="utf-8-sig" if nuevo else "utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=COLUMNAS_NOTAS, delimiter=";")
+            if nuevo:
+                w.writeheader()
+            w.writerow(nota)
+    else:
+        if lugar.row_values(1) != COLUMNAS_NOTAS:
+            lugar.update([COLUMNAS_NOTAS], "A1", value_input_option="RAW")
+        lugar.append_rows([[nota[c] for c in COLUMNAS_NOTAS]], value_input_option="RAW")
+    return nota
+
+
+def borrar_nota(id_nota: str, archivo=None) -> None:
+    """Borra una nota (cuando Omar ya aplicó el cambio)."""
+    lugar = _lugar_notas(archivo)
+    if lugar is None:
+        return
+    df = leer_notas(archivo).iloc[::-1]
+    df = df[df["id"] != id_nota]
+    if isinstance(lugar, Path):
+        df.to_csv(lugar, sep=";", index=False, encoding="utf-8-sig")
+    else:
+        lugar.clear()
+        lugar.update([COLUMNAS_NOTAS] + df.values.tolist(), "A1", value_input_option="RAW")
+
+
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
 

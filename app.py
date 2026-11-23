@@ -697,6 +697,55 @@ if puede_ver_registros:
             else:
                 st.caption("Este mes todavía no terminó. Cuando empiece el mes siguiente, vas a poder eliminar su archivo.")
 
+# ------------------------------------------------------------ notas u observaciones (para mejorar la app)
+# Cualquiera deja una nota. Quien tiene "ve_notas" en usuarios.json (Omar) ve todas y las borra
+# a medida que aplica los cambios. Los demás ven las suyas hasta que cierran la app.
+st.session_state.setdefault("mis_notas", [])
+if usuario:
+    with st.expander("📝 Nota u observación"):
+        st.caption("¿Algo para cambiar, arreglar o agregar a la app? Escribilo acá y le llega a Omar.")
+        texto_nota = st.text_area("Tu nota", key="texto_nota", label_visibility="collapsed",
+                                  placeholder="Ej.: que el botón de guardar sea más grande")
+
+        def enviar_nota():
+            texto = st.session_state.get("texto_nota", "").strip()
+            if texto:
+                st.session_state["mis_notas"].append(registro.guardar_nota(usuario["nombre"], texto))
+                st.session_state["texto_nota"] = ""
+                st.session_state["nota_enviada"] = True
+
+        st.button("📨 Enviar nota", key="btn_nota", on_click=enviar_nota, disabled=not texto_nota.strip())
+        if st.session_state.pop("nota_enviada", False):
+            st.success("¡Gracias! La nota quedó guardada.")
+        if st.session_state["mis_notas"] and not usuario.get("ve_notas"):
+            st.write("**Tus notas de hoy:**")
+            for n in st.session_state["mis_notas"]:
+                st.markdown(f"- {n['nota']} _({n['fecha']})_")
+
+        # Clave opcional para ver las notas (clave_notas en Secrets). Sin clave configurada, Omar las ve directo.
+        clave_notas = str(SECRETOS.get("clave_notas", "") or "")
+        puede_ver_notas = usuario.get("ve_notas") and (
+            not clave_notas or st.session_state.get("clave_notas_ok")
+        )
+        if usuario.get("ve_notas") and not puede_ver_notas:
+            escrita = st.text_input("Clave para ver las notas", type="password", key="clave_notas_txt")
+            if escrita and escrita == clave_notas:
+                st.session_state["clave_notas_ok"] = True
+                st.rerun()
+            elif escrita:
+                st.error("Clave incorrecta.")
+
+        if puede_ver_notas:
+            notas = registro.leer_notas()
+            st.divider()
+            st.write(f"**Notas del equipo ({len(notas)})**" if len(notas) else "**No hay notas del equipo.**")
+            for n in notas.itertuples():
+                c1, c2 = st.columns([5, 2])
+                c1.markdown(f"**{n.usuario}** · {n.fecha}  \n{n.nota}")
+                if c2.button("✅ Listo, borrar", key=f"borrar_nota_{n.id}", use_container_width=True):
+                    registro.borrar_nota(n.id)
+                    st.rerun()
+
 # ------------------------------------------------------------ ayuda (preguntas frecuentes, sin IA)
 AYUDA = """
 **📷 ¿Cómo cargo un envase?**
