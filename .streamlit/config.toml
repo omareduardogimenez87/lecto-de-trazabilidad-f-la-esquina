@@ -1,3 +1,7 @@
 # Colores de Farmacia La Esquina: el violeta suave sale del pin violeta del logo.
 [theme]
 primaryColor = "#8B5A9E"
+
+# Sirve la carpeta static/ (íconos del acceso directo del celular) en app/static/.
+[server]
+enableStaticServing = true
