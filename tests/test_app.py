@@ -174,7 +174,7 @@ def test_la_ayuda_se_responde_desde_el_buscador():
     at = AppTest.from_file(APP, default_timeout=60).run()
     assert not at.exception
     assert not any("preguntas frecuentes" in e.label for e in at.expander)  # ya no hay desplegable aparte
-    next(t for t in at.text_input if t.key == "consulta_txt").input("la foto no se lee").run()
+    next(t for t in at.text_input if t.key == "consulta_txt").input("la foto no se lee"); at.button(key="btn_buscar").click().run()
     assert any("La foto no se lee" in m.value for m in at.markdown)
 
 
