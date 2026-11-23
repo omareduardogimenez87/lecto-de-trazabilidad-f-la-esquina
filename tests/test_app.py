@@ -114,3 +114,26 @@ def test_seleccionar_todo_y_pasar_a_revisados(tmp_path, monkeypatch):
     boton.click().run()
     assert not at.exception
     assert (registro.leer()["revisado_por"] == "Fernanda").all()
+
+
+def test_archivar_y_eliminar_desde_revisados(tmp_path, monkeypatch):
+    from lector import registro
+
+    monkeypatch.setattr(registro, "ARCHIVO", tmp_path / "registros.csv")
+    registro.guardar([dict(gtin="07795312020770", serie=s, usuario="Omar") for s in ("A1", "A2")])
+    registro.marcar_revisados([("07795312020770", "A1")], "Claudia")
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.pills[0].set_value("Claudia").run()
+    at.button(key="btn_archivar").click().run()
+    assert not at.exception
+    assert any("Archivados: 1 en" in s.value for s in at.success)
+    assert registro.meses_archivados() and at.selectbox(key="mes_archivo").value
+
+    registro.guardar([dict(gtin="07795312020770", serie="A3", usuario="Omar")])
+    registro.marcar_revisados([("07795312020770", "A3")], "Claudia")
+    at.run()
+    assert at.button(key="btn_eliminar").disabled
+    at.text_input(key="confirmar_borrar").input("borrar").run()
+    at.button(key="btn_eliminar").click().run()
+    assert not at.exception
+    assert list(registro.leer()["serie"]) == ["A2"]

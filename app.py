@@ -575,7 +575,7 @@ if puede_ver_registros:
     with tab_revisados:
         st.caption("Registros que una farmacéutica ya vio y dio por buenos.")
         if revisados.empty:
-            st.info("Todavía no hay registros revisados.")
+            st.info("No hay registros revisados sin archivar.")
         else:
             vista = filtrar(revisados, "rev")
             st.write(f"{len(vista)} registro(s) revisado(s).")
@@ -583,10 +583,51 @@ if puede_ver_registros:
             tabla = vista[list(columnas)].rename(columns=columnas)
             st.dataframe(tabla, hide_index=True, use_container_width=True)
             descargas(tabla, "Listado de revisados", "rev")
-            if True:
-                with st.expander("¿Tildaste uno por error? Volverlo a pendientes"):
-                    opciones = {f"{r.gtin} · serie {r.serie} · revisado por {r.revisado_por}": (r.gtin, r.serie) for r in vista.itertuples()}
-                    elegido = st.selectbox("Registro", list(opciones), key="volver_pend")
-                    if st.button("↩️ Volver a pendientes", key="btn_volver"):
-                        registro.desmarcar_revisado(*opciones[elegido])
-                        st.rerun()
+            with st.expander("¿Tildaste uno por error? Volverlo a pendientes"):
+                opciones = {f"{r.gtin} · serie {r.serie} · revisado por {r.revisado_por}": (r.gtin, r.serie) for r in vista.itertuples()}
+                elegido = st.selectbox("Registro", list(opciones), key="volver_pend")
+                if st.button("↩️ Volver a pendientes", key="btn_volver"):
+                    registro.desmarcar_revisado(*opciones[elegido])
+                    st.rerun()
+
+            # Archivar por mes: Revisados queda limpio y cada mes se puede ver y bajar abajo.
+            with st.expander(f"📦 Archivar por mes los {len(revisados)} revisados"):
+                st.write(
+                    "Pasa **todos** los revisados a un archivo de su mes (según la fecha en que se guardaron) "
+                    "y los saca de esta lista. No se pierde nada: cada mes se puede ver y bajar en Excel acá abajo."
+                )
+                if st.button(f"📦 Archivar {len(revisados)} revisados", key="btn_archivar"):
+                    cuantos = registro.archivar_revisados()
+                    detalle = ", ".join(f"{n} en {registro.nombre_del_mes(m)}" for m, n in cuantos.items())
+                    st.session_state["aviso_rev"] = ("success", f"📦 Archivados: {detalle}.")
+                    st.rerun()
+
+            # Eliminar todos: no se puede deshacer, por eso pide escribir BORRAR.
+            with st.expander(f"🗑️ Eliminar los {len(revisados)} revisados"):
+                st.warning(
+                    "Esto **borra para siempre** todos los revisados (no solo los filtrados) y **no se puede deshacer**. "
+                    "Si los querés guardar, mejor usá **Archivar por mes**. Los pendientes y los meses archivados no se tocan."
+                )
+                confirma = st.text_input("Para confirmar, escribí BORRAR", key="confirmar_borrar")
+                if st.button(
+                    f"🗑️ Eliminar {len(revisados)} revisados", key="btn_eliminar", disabled=confirma.strip().upper() != "BORRAR"
+                ):
+                    n = registro.eliminar_revisados()
+                    st.session_state.pop("confirmar_borrar", None)
+                    st.session_state["aviso_rev"] = ("info", f"🗑️ Se eliminaron {n} revisados.")
+                    st.rerun()
+
+        aviso = st.session_state.pop("aviso_rev", None)
+        if aviso:
+            getattr(st, aviso[0])(aviso[1])
+
+        meses = registro.meses_archivados()
+        if meses:
+            st.subheader("📦 Meses archivados")
+            mes = st.selectbox("Mes", meses, format_func=lambda m: registro.nombre_del_mes(m).capitalize(), key="mes_archivo")
+            del_mes = registro.leer_mes(mes)
+            st.write(f"{len(del_mes)} registro(s) en {registro.nombre_del_mes(mes)}.")
+            columnas = {**COLUMNAS_REGISTRO, "revisado_por": "Revisado por", "revisado_el": "Revisado el"}
+            tabla_mes = del_mes.iloc[::-1][list(columnas)].rename(columns=columnas)
+            st.dataframe(tabla_mes, hide_index=True, use_container_width=True)
+            descargas(tabla_mes, f"Listado de revisados de {registro.nombre_del_mes(mes)}", f"mes_{mes}")

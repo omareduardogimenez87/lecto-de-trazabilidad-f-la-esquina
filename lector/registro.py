@@ -181,8 +181,7 @@ def ya_registrado(gtin: str, serie: str, archivo=None) -> bool:
     archivo = _destino(archivo)
     if not gtin or not serie:
         return False
-    df = leer(archivo)
-    return bool(((df["gtin"] == gtin) & (df["serie"] == serie)).any())
+    return buscar(gtin, serie, archivo) is not None
 
 
 def buscar(gtin: str, serie: str, archivo=None) -> dict | None:
@@ -192,7 +191,12 @@ def buscar(gtin: str, serie: str, archivo=None) -> dict | None:
         return None
     df = leer(archivo)
     previo = df[(df["gtin"] == gtin) & (df["serie"] == serie)]
-    return None if previo.empty else previo.iloc[-1].to_dict()
+    if not previo.empty:
+        return previo.iloc[-1].to_dict()
+    try:
+        return _buscar_en_archivo(gtin, serie, archivo)
+    except Exception:  # si no se puede leer el archivo, no frenar el guardado
+        return None
 
 
 def reemplazar(fila: dict, archivo=None) -> None:
@@ -223,6 +227,107 @@ def guardar(filas: list[dict], archivo=None) -> int:
             w.writeheader()
         w.writerows(filas)
     return len(filas)
+
+
+# ------------------------------------------------------------ archivo por mes y borrado de revisados
+# Los revisados se pueden "archivar por mes": salen de Revisados y pasan a un archivo de
+# ese mes (según la fecha en que se guardaron). En la PC es registros/archivo/AAAA-MM.csv;
+# en la nube, una pestaña "Revisados AAAA-MM" en la misma planilla de Google.
+
+PREFIJO_PESTANA = "Revisados "
+MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+         "septiembre", "octubre", "noviembre", "diciembre"]
+_cache_archivo: dict[str, tuple[float, pd.DataFrame]] = {}
+
+
+def nombre_del_mes(mes: str) -> str:
+    """'2026-11' -> 'noviembre 2026'."""
+    anio, m = mes.split("-")
+    return f"{MESES[int(m) - 1]} {anio}"
+
+
+def _mes_de(fecha: str) -> str:
+    try:
+        return datetime.strptime(fecha, FORMATO_FECHA).strftime("%Y-%m")
+    except (TypeError, ValueError):
+        return ahora().strftime("%Y-%m")
+
+
+def _carpeta_archivo(archivo):
+    """Dónde van los meses archivados de este registro (carpeta o planilla de Google)."""
+    if isinstance(archivo, Path):
+        return archivo.parent / "archivo"
+    return archivo.spreadsheet
+
+
+def _destino_mes(lugar, mes: str, crear: bool = False):
+    if isinstance(lugar, Path):
+        return lugar / f"{mes}.csv"
+    titulo = PREFIJO_PESTANA + mes
+    for hoja in lugar.worksheets():
+        if hoja.title == titulo:
+            return hoja
+    return lugar.add_worksheet(title=titulo, rows=1000, cols=len(COLUMNAS)) if crear else None
+
+
+def meses_archivados(archivo=None) -> list[str]:
+    """Meses que tienen archivo, del más nuevo al más viejo (ej. ['2026-11', '2026-10'])."""
+    lugar = _carpeta_archivo(_destino(archivo))
+    if isinstance(lugar, Path):
+        meses = [p.stem for p in lugar.glob("*.csv")] if lugar.exists() else []
+    else:
+        meses = [h.title[len(PREFIJO_PESTANA):] for h in lugar.worksheets() if h.title.startswith(PREFIJO_PESTANA)]
+    return sorted(meses, reverse=True)
+
+
+def leer_mes(mes: str, archivo=None) -> pd.DataFrame:
+    """Los revisados archivados de un mes."""
+    clave = f"{id(_destino(archivo))}:{mes}"
+    guardado = _cache_archivo.get(clave)
+    if guardado and time.monotonic() - guardado[0] < SEGUNDOS_CACHE:
+        return guardado[1].copy()
+    destino = _destino_mes(_carpeta_archivo(_destino(archivo)), mes)
+    df = pd.DataFrame(columns=COLUMNAS) if destino is None else leer(destino)
+    _cache_archivo[clave] = (time.monotonic(), df)
+    return df.copy()
+
+
+def archivar_revisados(archivo=None) -> dict[str, int]:
+    """Pasa todos los revisados a su archivo del mes y los saca de Revisados.
+    Devuelve cuántos fueron a cada mes, ej. {'2026-11': 12}."""
+    archivo = _destino(archivo)
+    df = leer(archivo)
+    revisados = df[df["revisado_por"] != ""]
+    if revisados.empty:
+        return {}
+    lugar = _carpeta_archivo(archivo)
+    cuantos = {}
+    for mes, grupo in revisados.groupby(revisados["fecha_registro"].map(_mes_de)):
+        destino = _destino_mes(lugar, mes, crear=True)
+        guardar(grupo.to_dict("records"), destino)  # primero se copia al archivo...
+        cuantos[mes] = len(grupo)
+    _escribir(df[df["revisado_por"] == ""], archivo)  # ...y recién después se saca de Revisados
+    _cache_archivo.clear()
+    return cuantos
+
+
+def eliminar_revisados(archivo=None) -> int:
+    """Borra para siempre todos los revisados (no toca los pendientes ni los meses archivados)."""
+    archivo = _destino(archivo)
+    df = leer(archivo)
+    quedan = df[df["revisado_por"] == ""]
+    _escribir(quedan, archivo)
+    return len(df) - len(quedan)
+
+
+def _buscar_en_archivo(gtin: str, serie: str, archivo) -> dict | None:
+    """Busca la unidad también en los meses archivados (para avisar duplicados)."""
+    for mes in meses_archivados(archivo):
+        df = leer_mes(mes, archivo)
+        previo = df[(df["gtin"] == gtin) & (df["serie"] == serie)]
+        if not previo.empty:
+            return previo.iloc[-1].to_dict()
+    return None
 
 
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]

@@ -28,6 +28,8 @@ Estas pestañas solo aparecen cuando se toca el nombre de **Claudia o Fernanda**
 
 - **Registros**: lo que cargó todo el equipo y falta revisar. Por defecto se ve todo, y se puede filtrar por quién lo subió o buscar por GTIN, serie o lote. La farmacéutica tilda **✔ Revisado** en los que ya vio y toca **Pasar a Revisados**.
 - **Revisados**: lo que ya revisó una farmacéutica, con quién y cuándo. Si se tildó uno por error, se puede volver a pendientes.
+  - **📦 Archivar por mes**: pasa todos los revisados a un archivo de su mes (en la nube, una pestaña `Revisados AAAA-MM` en la planilla; en la PC, `registros/archivo/AAAA-MM.csv`). Abajo, en **Meses archivados**, se elige el mes para verlo y bajarlo en Excel. Un envase archivado se sigue detectando como duplicado.
+  - **🗑️ Eliminar los revisados**: los borra para siempre. Pide escribir BORRAR para confirmar.
 - Las dos pestañas se descargan en **Excel** (GTIN y serie como texto, completos), con el nombre `Listado de registros sin revisar <fecha>` o `Listado de revisados <fecha>`. Columnas: GTIN, Serie, Lote, Vencimiento, Envió, Fecha de la foto y Guardado el; en Revisados también Revisado por y Revisado el.
 
 Cada fila guarda: fecha de registro, fecha de la foto (y de dónde salió), usuario, rol, sucursal, nombre de la foto, GTIN, serie, lote, vencimiento, elaboración, si se leyó del DataMatrix o del texto, y si se corrigió a mano.
