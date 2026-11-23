@@ -64,7 +64,7 @@ Al elegir tu nombre aparece, chiquito debajo de los botones de foto, **📝 Nota
 La ayuda está dentro del **Asistente La Esquina** (siempre visible, debajo de las fotos) (sin IA, no usa internet): se escribe la duda en el mismo buscador ("la foto no se lee", "archivar", "descargar excel") Los únicos botones de categoría son Ofertas OTC y Cajones; el resto de los datos (programas, PICC, obras sociales, horarios, etc.) se encuentra escribiendo.
 
 ### Reportar incidencia a Equipo TI
-Al final de la app hay un botón con el logo de I.T. AREA, **Reportar incidencia a Equipo TI** (chico y discreto, con borde violeta y verde como su página), que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña.
+Al final de la app hay un botón con el logo de I.T. AREA, **Reportar incidencia a Equipo TI** (chico y discreto, con borde violeta y verde como su página), que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña. Debajo, **Página oficial Farmacia La Esquina** abre <https://farmacialaesquina.com.ar/> en otra pestaña.
 
 ## Cómo se instala (paso a paso, en Windows)
 

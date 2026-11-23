@@ -1113,6 +1113,19 @@ if LOGO_TI.exists():
 else:
     st.link_button("Reportar incidencia a Equipo TI", URL_TICKETS, use_container_width=True)
 
+# Acceso a la página oficial, con los colores de la web (verde lima, amarillo y violeta) y la cruz de La Esquina.
+URL_WEB = "https://farmacialaesquina.com.ar/"
+cruz = (f'<img src="data:image/png;base64,{en_base64(ICONO)}" alt="" style="height:1.6rem; width:1.6rem;">'
+        if ICONO.exists() else "🌐")
+st.markdown(
+    f"""<div style="text-align:center; margin-top:.6rem;"><a href="{URL_WEB}" target="_blank" rel="noopener" style="display:inline-flex;
+    align-items:center; gap:.5rem; padding:.35rem .95rem; border:1px solid transparent; border-radius:999px;
+    text-decoration:none; color:#31333f; font-size:1.05rem; font-weight:500;
+    background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #BFCD3A, #FFF212, #8B5A9E) border-box;">
+    {cruz}<span>Página oficial <span style="color:#8B5A9E; font-weight:700;">Farmacia La Esquina</span></span></a></div>""",
+    unsafe_allow_html=True,
+)
+
 # ------------------------------------------------------------ pie de página (marca de agua)
 # Leyenda al final de la app, en gris y letra chica, visible en todas las pantallas.
 st.markdown(

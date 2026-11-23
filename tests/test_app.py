@@ -203,3 +203,9 @@ def test_boton_soporte_area_ti():
     assert not at.exception
     enlaces = [m.value for m in at.markdown if "Reportar incidencia a" in m.value]
     assert enlaces and 'href="https://area-t-i-tickets.vercel.app/"' in enlaces[0] and 'target="_blank"' in enlaces[0]
+
+
+def test_boton_pagina_oficial():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    enlaces = [m.value for m in at.markdown if "Página oficial" in m.value]
+    assert enlaces and 'href="https://farmacialaesquina.com.ar/"' in enlaces[0] and 'target="_blank"' in enlaces[0]
