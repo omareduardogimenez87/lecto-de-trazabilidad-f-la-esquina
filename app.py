@@ -23,7 +23,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import cajones, catalogo, consultas, ofertas, registro
+from lector import ayuda, cajones, catalogo, consultas, ofertas, registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, leer_codigos_de_producto, ocr_disponible
@@ -364,6 +364,26 @@ ESTILO_BOTONES = """
 .st-key-fotos [data-testid="stColumn"] { flex: 1 1 0 !important; min-width: 0 !important; width: auto !important; }
 .st-key-camara section button { background: #c62f3f; color: white; border-color: #c62f3f; }
 .st-key-galeria section button { background: white; color: #31333f !important; opacity: 1 !important; }
+/* "Sacar de nuevo" en las tarjetas ❌: mismo estilo que "Sacar foto", del alto de un botón común. */
+[class*="st-key-recamara_"] [data-testid="stFileUploaderDropzoneInstructions"],
+[class*="st-key-recamara_"] [data-testid="stFileChip"] { display: none !important; }
+[class*="st-key-recamara_"] section { padding: 0; background: transparent; border: none; display: block; }
+[class*="st-key-recamara_"] section > span, [class*="st-key-recamara_"] section button { display: block; width: 100%; max-width: none; }
+[class*="st-key-recamara_"] section button {
+  min-height: 2.5rem; font-size: 0 !important; border-radius: 0.5rem; background: #c62f3f; color: white; border: 1px solid #c62f3f;
+}
+[class*="st-key-recamara_"] section button * { display: none !important; }
+[class*="st-key-recamara_"] section button::before { content: "📷  Sacar de nuevo"; font-size: 1rem; }
+/* Consultas: botón "Escanear código o producto" en lugar del "Upload". */
+.st-key-escanear [data-testid="stFileUploaderDropzoneInstructions"],
+.st-key-escanear [data-testid="stFileChip"] { display: none !important; }
+.st-key-escanear section { padding: 0; background: transparent; border: none; display: block; }
+.st-key-escanear section > span, .st-key-escanear section button { display: block; width: 100%; max-width: none; }
+.st-key-escanear section button {
+  min-height: 3.2rem; font-size: 0 !important; border-radius: 0.75rem; background: #8B5A9E; color: white; border: 1px solid #8B5A9E;
+}
+.st-key-escanear section button * { display: none !important; }
+.st-key-escanear section button::before { content: "📷  Escanear código o producto"; font-size: 1.1rem; }
 </style>
 """
 
@@ -374,7 +394,7 @@ SCRIPT_CAMARA = """
 <script>
 const doc = window.parent.document;
 function ajustar() {
-  doc.querySelectorAll('.st-key-camara input[type=file]').forEach(i => {
+  doc.querySelectorAll('.st-key-camara input[type=file], [class*="st-key-recamara_"] input[type=file], .st-key-escanear input[type=file]').forEach(i => {
     if (i.getAttribute('capture') !== 'environment') i.setAttribute('capture', 'environment');
     if (i.getAttribute('accept') !== 'image/*') i.setAttribute('accept', 'image/*');
   });
@@ -415,6 +435,62 @@ else:
     tab_leer = contextlib.nullcontext()
     tab_pendientes = tab_revisados = None
 
+# ------------------------------------------------------------ notas u observaciones (para mejorar la app)
+# Cualquiera deja una nota. Quien tiene "ve_notas" en usuarios.json (Omar) ve todas y las borra
+# a medida que aplica los cambios. Los demás ven las suyas hasta que cierran la app.
+# Va chiquito, justo debajo de los botones de foto (pedido de Edu: no es tan importante).
+def nota_u_observacion() -> None:
+    st.session_state.setdefault("mis_notas", [])
+    if not usuario:
+        return
+    st.markdown("<style>.st-key-nota button p { font-size: .85rem !important; color: #6b6b6b; }</style>",
+                unsafe_allow_html=True)
+    with st.container(key="nota"):
+        with st.popover("📝 Nota u observación"):
+            st.caption("¿Algo para cambiar, arreglar o agregar a la app? Escribilo acá y le llega a Omar.")
+            texto_nota = st.text_area("Tu nota", key="texto_nota", label_visibility="collapsed",
+                                      placeholder="Ej.: que el botón de guardar sea más grande")
+
+            def enviar_nota():
+                texto = st.session_state.get("texto_nota", "").strip()
+                if texto:
+                    st.session_state["mis_notas"].append(registro.guardar_nota(usuario["nombre"], texto))
+                    st.session_state["texto_nota"] = ""
+                    st.session_state["nota_enviada"] = True
+
+            st.button("📨 Enviar nota", key="btn_nota", on_click=enviar_nota, disabled=not texto_nota.strip())
+            if st.session_state.pop("nota_enviada", False):
+                st.success("¡Gracias! La nota quedó guardada.")
+            if st.session_state["mis_notas"] and not usuario.get("ve_notas"):
+                st.write("**Tus notas de hoy:**")
+                for n in st.session_state["mis_notas"]:
+                    st.markdown(f"- {n['nota']} _({n['fecha']})_")
+
+            # Clave opcional para ver las notas (clave_notas en Secrets). Sin clave configurada, Omar las ve directo.
+            clave_notas = str(SECRETOS.get("clave_notas", "") or "")
+            puede_ver_notas = usuario.get("ve_notas") and (
+                not clave_notas or st.session_state.get("clave_notas_ok")
+            )
+            if usuario.get("ve_notas") and not puede_ver_notas:
+                escrita = st.text_input("Clave para ver las notas", type="password", key="clave_notas_txt")
+                if escrita and escrita == clave_notas:
+                    st.session_state["clave_notas_ok"] = True
+                    st.rerun()
+                elif escrita:
+                    st.error("Clave incorrecta.")
+
+            if puede_ver_notas:
+                notas = registro.leer_notas()
+                st.divider()
+                st.write(f"**Notas del equipo ({len(notas)})**" if len(notas) else "**No hay notas del equipo.**")
+                for n in notas.itertuples():
+                    c1, c2 = st.columns([5, 2])
+                    c1.markdown(f"**{n.usuario}** · {n.fecha}  \n{n.nota}")
+                    if c2.button("✅ Listo, borrar", key=f"borrar_nota_{n.id}", use_container_width=True):
+                        registro.borrar_nota(n.id)
+                        st.rerun()
+
+
 # ------------------------------------------------------------ función 1: leer
 with tab_leer:
     # Mensajes del último guardado (se muestran una vez y se borran).
@@ -428,6 +504,7 @@ with tab_leer:
         "impresos al lado, de cerca, con buena luz y sin reflejos. **Se lee sola al cargarla.**"
     )
     fotos = botones_de_foto(st.session_state["ronda"])
+    nota_u_observacion()
     # Si cargan una foto sin haber elegido quién es, se pide el nombre (la foto queda y se lee al elegirlo).
     if fotos and not usuario:
         st.warning("☝️ Antes de leer la foto, **tocá tu nombre** arriba. Tu nombre queda elegido hasta que cierres la app.")
@@ -520,9 +597,16 @@ with tab_leer:
                     "**No estoy seguro de haber leído bien.** " + " · ".join(it["motivos"])
                     + ". Sacá otra foto más de cerca y con buena luz, o corregí los datos a mano mirando el envase."
                 )
-                otra_foto = st.file_uploader(
-                    "Otra foto", type=["jpg", "jpeg", "png", "webp"], key=f"otra_{it['id']}", label_visibility="collapsed"
-                )
+                # Dos opciones claras: volver a sacar la foto (abre la cámara) o quitar esta tarjeta.
+                col_otra, col_cancelar = st.columns(2)
+                with col_otra:
+                    with st.container(key=f"recamara_{it['id']}"):
+                        otra_foto = st.file_uploader(
+                            "Sacar de nuevo", type=TIPOS_FOTO, key=f"otra_{it['id']}", label_visibility="collapsed"
+                        )
+                if col_cancelar.button("🗑️ Cancelar y eliminar", key=f"cancelar_{it['id']}", use_container_width=True):
+                    cerrar_tarjeta(it, ("info", "Se eliminó esa foto sin guardar nada."))
+                    st.rerun()
                 if otra_foto is not None:
                     reemplazar(it["id"], otra_foto.getvalue(), otra_foto.name)
                     st.rerun()
@@ -771,6 +855,9 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
 
 
 OFERTAS_ETIQUETA = "💊 Ofertas OTC"
+AYUDA_ETIQUETA = "❓ Ayuda de la app"
+SECCIONES_CON_BOTON = ("5", "6")  # Programas y PICC Elea
+TITULO_AYUDANTE = "💬 Chatear con el ayudante"  # no usa IA: busca en los archivos de la carpeta consultas
 CATALOGO_ETIQUETA = "🛍️ Catálogo"
 CAJONES_ETIQUETA = "🗄️ Cajones"
 
@@ -808,20 +895,28 @@ def responder_codigo(codigo: str, base, lista, hoy) -> None:
 
 
 if consultas.ARCHIVO.exists():
-    with st.expander("💬 Consultas rápidas del mostrador"):
+    with st.expander("💬 Consultas rápidas y ayuda"):
         base = base_de_consultas(consultas.ARCHIVO.stat().st_mtime)
         lista_ofertas = ofertas_otc(ofertas.ARCHIVO.stat().st_mtime if ofertas.ARCHIVO.exists() else 0)
         items_cajones = mapa_de_cajones(cajones.ARCHIVO.stat().st_mtime if cajones.ARCHIVO.exists() else 0)
         productos = catalogo_de_productos(catalogo.ARCHIVO.stat().st_mtime if catalogo.ARCHIVO.exists() else 0)
         hoy = consultas.hoy_argentina()
 
+        # Arriba: el buscador ("ayudante", sin IA). Debajo: escanear el código del producto.
+        st.markdown(f"**{TITULO_AYUDANTE}**")
+        st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
+                   "quién trabaja hoy, la foto no se lee). Para los cajones sirve aunque esté mal escrito.")
+        pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
+                                 placeholder="🔎 Buscar: obra social, producto, promo, atajo...")
+
         # Lector de código de barras: foto del producto -> oferta, precio o dato cargado.
-        st.markdown("**📷 Leer código de barras**")
         st.session_state.setdefault("ronda_codigo", 0)
-        foto_codigo = st.file_uploader(
-            "Foto del código de barras", type=TIPOS_FOTO, key=f"foto_codigo_{st.session_state['ronda_codigo']}",
-            label_visibility="collapsed",
-        )
+        # Un solo botón grande que abre la cámara (sin el "Upload" ni el texto de Streamlit).
+        with st.container(key="escanear"):
+            foto_codigo = st.file_uploader(
+                "Escanear código o producto", type=TIPOS_FOTO, key=f"foto_codigo_{st.session_state['ronda_codigo']}",
+                label_visibility="collapsed",
+            )
         if foto_codigo is not None:
             try:
                 codigos = leer_codigos_de_producto(abrir(foto_codigo))
@@ -836,26 +931,18 @@ if consultas.ARCHIVO.exists():
                 st.session_state["ronda_codigo"] += 1
                 st.rerun()
 
-        st.markdown("**🔎 Buscar**")
-        st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
-                   "quién trabaja hoy) o tocá una categoría. Para los cajones sirve aunque esté mal escrito.")
-        pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
-                                 placeholder="🔎 Buscar: obra social, producto, promo, atajo...")
         st.markdown(
             "<style>.st-key-categorias [data-testid='stButtonGroup'] button p { font-size: .95rem !important; }"
             ".st-key-categorias [data-testid='stButtonGroup'] button { min-height: 2.4rem; padding: .3rem .5rem !important; }</style>",
             unsafe_allow_html=True,
         )
-        etiquetas = [s.etiqueta for s in base.secciones]
+        # Botones de categoría (pedido de Edu: solo estos). El resto se encuentra escribiendo en el buscador.
+        etiquetas = [s.etiqueta for s in base.secciones if s.numero in SECCIONES_CON_BOTON]
         if lista_ofertas:
-            etiquetas.insert(next((i + 1 for i, s in enumerate(base.secciones) if s.numero == "7"), len(etiquetas)),
-                             OFERTAS_ETIQUETA)
-        if productos:
-            etiquetas.insert(next((i + 1 for i, e in enumerate(etiquetas) if e == OFERTAS_ETIQUETA), len(etiquetas)),
-                             CATALOGO_ETIQUETA)
+            etiquetas.append(OFERTAS_ETIQUETA)
         if items_cajones:
-            etiquetas.insert(next((i + 1 for i, e in enumerate(etiquetas) if e.endswith("Mostrador")), len(etiquetas)),
-                             CAJONES_ETIQUETA)
+            etiquetas.append(CAJONES_ETIQUETA)
+        etiquetas.append(AYUDA_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
         if pregunta.strip():
@@ -887,14 +974,21 @@ if consultas.ARCHIVO.exists():
                     st.markdown(f"<small>{titulo}</small>", unsafe_allow_html=True)
                     st.markdown(texto)
                     st.divider()
+                de_ayuda = ayuda.buscar(pregunta)
+                for q, resp in de_ayuda:
+                    st.markdown(f"<small>Ayuda de la app</small>", unsafe_allow_html=True)
+                    st.markdown(f"**{q}**  \n{resp}")
+                    st.divider()
                 del_catalogo = catalogo.buscar(productos, pregunta)
                 if del_catalogo:
                     mostrar_catalogo(del_catalogo, lista_ofertas)
-                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon or del_catalogo):
+                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon or del_catalogo or de_ayuda):
                     if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
                     else:
                         st.info(consultas.SIN_DATO)
+        elif categoria == AYUDA_ETIQUETA:
+            st.markdown(ayuda.AYUDA)
         elif categoria == CATALOGO_ETIQUETA:
             st.markdown(f"**{len(productos)} productos** en el catálogo. Buscá por nombre, marca o categoría arriba.")
             st.markdown("\n".join(f"- {c}: {n}" for c, n in catalogo.categorias(productos).most_common()))
@@ -931,89 +1025,24 @@ if consultas.ARCHIVO.exists():
         st.caption(f"Lo marcado con ⚠️ está {consultas.A_CONFIRMAR}. "
                    "Las consultas de salud (dosis, para qué sirve) las responde la farmacéutica.")
 
-# ------------------------------------------------------------ notas u observaciones (para mejorar la app)
-# Cualquiera deja una nota. Quien tiene "ve_notas" en usuarios.json (Omar) ve todas y las borra
-# a medida que aplica los cambios. Los demás ven las suyas hasta que cierran la app.
-st.session_state.setdefault("mis_notas", [])
-if usuario:
-    with st.expander("📝 Nota u observación"):
-        st.caption("¿Algo para cambiar, arreglar o agregar a la app? Escribilo acá y le llega a Omar.")
-        texto_nota = st.text_area("Tu nota", key="texto_nota", label_visibility="collapsed",
-                                  placeholder="Ej.: que el botón de guardar sea más grande")
-
-        def enviar_nota():
-            texto = st.session_state.get("texto_nota", "").strip()
-            if texto:
-                st.session_state["mis_notas"].append(registro.guardar_nota(usuario["nombre"], texto))
-                st.session_state["texto_nota"] = ""
-                st.session_state["nota_enviada"] = True
-
-        st.button("📨 Enviar nota", key="btn_nota", on_click=enviar_nota, disabled=not texto_nota.strip())
-        if st.session_state.pop("nota_enviada", False):
-            st.success("¡Gracias! La nota quedó guardada.")
-        if st.session_state["mis_notas"] and not usuario.get("ve_notas"):
-            st.write("**Tus notas de hoy:**")
-            for n in st.session_state["mis_notas"]:
-                st.markdown(f"- {n['nota']} _({n['fecha']})_")
-
-        # Clave opcional para ver las notas (clave_notas en Secrets). Sin clave configurada, Omar las ve directo.
-        clave_notas = str(SECRETOS.get("clave_notas", "") or "")
-        puede_ver_notas = usuario.get("ve_notas") and (
-            not clave_notas or st.session_state.get("clave_notas_ok")
-        )
-        if usuario.get("ve_notas") and not puede_ver_notas:
-            escrita = st.text_input("Clave para ver las notas", type="password", key="clave_notas_txt")
-            if escrita and escrita == clave_notas:
-                st.session_state["clave_notas_ok"] = True
-                st.rerun()
-            elif escrita:
-                st.error("Clave incorrecta.")
-
-        if puede_ver_notas:
-            notas = registro.leer_notas()
-            st.divider()
-            st.write(f"**Notas del equipo ({len(notas)})**" if len(notas) else "**No hay notas del equipo.**")
-            for n in notas.itertuples():
-                c1, c2 = st.columns([5, 2])
-                c1.markdown(f"**{n.usuario}** · {n.fecha}  \n{n.nota}")
-                if c2.button("✅ Listo, borrar", key=f"borrar_nota_{n.id}", use_container_width=True):
-                    registro.borrar_nota(n.id)
-                    st.rerun()
-
-# ------------------------------------------------------------ ayuda (preguntas frecuentes, sin IA)
-AYUDA = """
-**📷 ¿Cómo cargo un envase?**
-Tocá tu nombre arriba. Después tocá **Sacar foto** (abre la cámara) o **Galería** (elegís una foto que ya tenés). La app la lee sola, no hace falta tocar nada más.
-
-**✅ ⚠️ ❌ ¿Qué significan?**
-- **✅ Lista**: se leyó del cuadradito (DataMatrix) y es exacta. Se guarda sola.
-- **⚠️ Revisar**: se leyó del texto impreso. Puede tener algún error, así que compará con el envase y tocá **Guardar**.
-- **❌ Sacar otra foto**: no se pudo leer bien. Sacá otra foto más de cerca y con buena luz.
-
-**📸 La foto no se lee, ¿qué hago?**
-Sacá otra: un solo envase, de cerca, con buena luz, sin reflejos y **sin marcar ni tapar** el cuadradito.
-
-**🔁 Me avisa que ya estaba cargado.**
-Ese envase (mismo código y serie) ya se había registrado. Elegí **Reemplazar** (si querés dejar los datos nuevos) o **Descartar** (si dejás el anterior).
-
-**👀 ¿Dónde veo lo cargado? (solo farmacéuticas)**
-En **Registros** está lo que cargó el equipo y falta revisar. **Seleccionar todo** tilda todos, y **Pasar a Revisados** mueve los tildados a la pestaña **Revisados**.
-
-**📦 Archivar por mes (Revisados)**
-Guarda todos los revisados en un archivo de su mes y limpia la lista. No se pierde nada: cada mes se puede ver y bajar en **Excel** abajo, en **Meses archivados**.
-
-**🗑️ Eliminar**
-Borra para siempre y no se puede deshacer, por eso pregunta dos veces. Si querés conservar los datos, usá **Archivar por mes** en vez de eliminar. Bajá el Excel antes de borrar.
-
-**⬇️ Descargar Excel**
-En Registros y Revisados, el botón **Descargar Excel** baja la lista con el GTIN y la serie completos.
-"""
-
-with st.expander("❓ Ayuda — preguntas frecuentes"):
-    st.markdown(AYUDA)
-
-# Soporte: abre el sistema de tickets del Área TI en otra pestaña.
-st.link_button("🛠️ Soporte Área TI", "https://area-t-i-tickets.vercel.app/", use_container_width=True)
+# Soporte: abre el sistema de tickets del Área TI en otra pestaña, con el logo de I.T. AREA.
+LOGO_TI = IMAGENES / "logo_ti.png"
+URL_TICKETS = "https://area-t-i-tickets.vercel.app/"
+if LOGO_TI.exists():
+    st.markdown(
+        # Colores de Área TI: fondo negro (#0B0B14, el de su página), borde degradé violeta → verde y un brillo suave.
+        f"""<a href="{URL_TICKETS}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center;
+        gap:.7rem; padding:.6rem 1rem; border:2px solid transparent; border-radius:.75rem; text-decoration:none;
+        color:#ffffff; font-weight:600; letter-spacing:.2px;
+        background: linear-gradient(#0B0B14, #0B0B14) padding-box, linear-gradient(90deg, #8B5CF6, #22C55E) border-box;
+        box-shadow: 0 0 12px rgba(139, 92, 246, .35), 0 0 18px rgba(34, 197, 94, .2);">
+        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:2.3rem; width:2.3rem; border-radius:50%;
+        box-shadow: 0 0 0 2px #22C55E;">
+        <span>Reportar incidencia a <span style="color:#A78BFA">Equipo</span> <span style="color:#4ADE80">TI</span></span></a>""",
+        unsafe_allow_html=True,
+    )
+else:
+    st.link_button("Reportar incidencia a Equipo TI", URL_TICKETS, use_container_width=True)
 
 # ------------------------------------------------------------ pie de página (marca de agua)
 # Leyenda al final de la app, en gris y letra chica, visible en todas las pantallas.

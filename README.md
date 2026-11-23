@@ -16,7 +16,7 @@ La usan 6 personas: Fernanda y Claudia (farmacéuticas), y Omar, Yessi, Silvia y
 |---|---|---|
 | ✅ Lista | Se leyó del DataMatrix | Tocar **Guardar** |
 | ⚠️ Revisar | Se leyó del texto impreso y los datos cierran | Comparar con el envase, corregir si hace falta y tocar **Coincide con el envase: guardar** |
-| ❌ Sacar otra foto | Foto movida/oscura, el GTIN no cierra o falta la serie | Subir otra foto en la misma tarjeta (o corregir a mano mirando el envase). No deja guardar hasta que el GTIN cierre y haya serie |
+| ❌ Sacar otra foto | Foto movida/oscura, el GTIN no cierra o falta la serie | Tocar **📷 Sacar de nuevo** en la misma tarjeta (abre la cámara), **🗑️ Cancelar y eliminar** para quitarla sin guardar, o corregir a mano mirando el envase. No deja guardar hasta que el GTIN cierre y haya serie |
 
    - **Guardado automático**: las que salen ✅ (leídas del DataMatrix) se guardan solas apenas se cargan, y aparece "Se guardaron correctamente X foto(s)". Si alguna no se pudo leer (❌), un aviso dice cuál y pide sacar otra foto. Las ⚠️ esperan que alguien las compare con el envase y toque Guardar.
 5. Al guardar, la tarjeta y la foto se borran y la pantalla queda lista para el próximo envase.
@@ -47,7 +47,7 @@ Abajo de las fotos hay una sección **💬 Consultas rápidas** (sin IA, no usa 
 
 **Cada viernes (horario nuevo)**: en el archivo `.md` se cambia la sección **2.1** (período y tabla). Después, en GitHub: abrir la carpeta `consultas` → **Add file → Upload files** → arrastrar el archivo nuevo con **el mismo nombre** → **Commit changes**. La app en la nube se actualiza sola en un par de minutos. Si hoy queda fuera del período cargado, la app responde "Todavía no está cargado el horario de esa fecha".
 
-**📷 Leer código de barras**: en Consultas se saca una foto del código de barras (o del DataMatrix) y la app muestra la oferta del producto, hasta cuándo vale y cuánto paga el cliente. Los datos salen de [`consultas/Ofertas_OTC_completo.xlsx`](consultas/Ofertas_OTC_completo.xlsx). Si el producto no tiene "Precio regular" dice "sin precio cargado"; si el código no está, "Producto no cargado". La categoría **💊 Ofertas OTC** muestra la lista completa. Para cargar precios o una oferta nueva, se edita el Excel y se sube igual que el `.md` (mismo nombre, carpeta `consultas`).
+**📷 Escanear código o producto**: en Consultas, debajo del buscador (**💬 Chatear con el ayudante**, sin IA), el botón abre la cámara y se saca una foto del código de barras (o del DataMatrix) y la app muestra la oferta del producto, hasta cuándo vale y cuánto paga el cliente. Los datos salen de [`consultas/Ofertas_OTC_completo.xlsx`](consultas/Ofertas_OTC_completo.xlsx). Si el producto no tiene "Precio regular" dice "sin precio cargado"; si el código no está, "Producto no cargado". La categoría **💊 Ofertas OTC** muestra la lista completa. Para cargar precios o una oferta nueva, se edita el Excel y se sube igual que el `.md` (mismo nombre, carpeta `consultas`).
 
 **🗄️ ¿En qué cajón está?**: al buscar un medicamento (aunque esté mal escrito: "glibencamida", "dexametazona", "tafirl") la app dice en qué cajón está, con el nombre tal como está anotado en [`consultas/CAJONES_corregido.xlsx`](consultas/CAJONES_corregido.xlsx). Los nombres que en la hoja "Cambios" dicen "A confirmar" salen con ⚠️. Si el producto tiene oferta OTC vigente, también la muestra (verificar la presentación exacta). La categoría **🗄️ Cajones** muestra el mapa completo. Formato del Excel: primera columna el cajón, las siguientes lo que hay adentro. Se reemplaza igual que los otros (mismo nombre, carpeta `consultas`).
 
@@ -56,13 +56,13 @@ Abajo de las fotos hay una sección **💬 Consultas rápidas** (sin IA, no usa 
 > Ojo: la app es pública, así que cualquiera con el link ve estos datos (horarios, token, códigos).
 
 ### 📝 Nota u observación
-Al elegir tu nombre aparece **📝 Nota u observación** para dejar algo que haya que cambiar o agregar a la app. Cada uno ve las notas que escribió hasta que cierra la app. **Omar** (`"ve_notas": true` en `usuarios.json`) ve todas, con quién y cuándo, y las borra con **✅ Listo, borrar** a medida que aplica los cambios. Se guardan en la pestaña **Notas** de la planilla (en la PC, `registros/notas.csv`). Opcional: si se agrega `clave_notas = "..."` en Secrets, la app pide esa clave para ver las notas.
+Al elegir tu nombre aparece, chiquito debajo de los botones de foto, **📝 Nota u observación** para dejar algo que haya que cambiar o agregar a la app. Cada uno ve las notas que escribió hasta que cierra la app. **Omar** (`"ve_notas": true` en `usuarios.json`) ve todas, con quién y cuándo, y las borra con **✅ Listo, borrar** a medida que aplica los cambios. Se guardan en la pestaña **Notas** de la planilla (en la PC, `registros/notas.csv`). Opcional: si se agrega `clave_notas = "..."` en Secrets, la app pide esa clave para ver las notas.
 
 ### ❓ Ayuda
-Al final de la app hay una sección **❓ Ayuda** con preguntas frecuentes y respuestas cortas (sin IA, no usa internet): cómo cargar un envase, qué significan ✅/⚠️/❌, foto que no se lee, duplicados, Registros/Revisados, archivar o eliminar un mes y descargar el Excel.
+La ayuda está dentro de **💬 Consultas rápidas y ayuda** (sin IA, no usa internet): se escribe la duda en el mismo buscador ("la foto no se lee", "archivar", "descargar excel") o se toca **❓ Ayuda de la app** para ver todas las preguntas frecuentes. Los botones de categoría que quedan son Programas, PICC Elea, Ofertas OTC, Cajones y Ayuda; el resto de los datos se encuentra escribiendo.
 
-### 🛠️ Soporte Área TI
-Al final de la app hay un botón **🛠️ Soporte Área TI** que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña.
+### Reportar incidencia a Equipo TI
+Al final de la app hay un botón con el logo de I.T. AREA, **Reportar incidencia a Equipo TI** (fondo negro con borde violeta y verde, como su página), que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña.
 
 ## Cómo se instala (paso a paso, en Windows)
 
