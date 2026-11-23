@@ -23,7 +23,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import cajones, consultas, ofertas, registro
+from lector import cajones, catalogo, consultas, ofertas, registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, leer_codigos_de_producto, ocr_disponible
@@ -749,7 +749,29 @@ def mapa_de_cajones(_modificado: float):
     return cajones.leer() if cajones.ARCHIVO.exists() else []
 
 
+@st.cache_data(show_spinner=False)
+def catalogo_de_productos(_modificado: float):
+    return catalogo.leer() if catalogo.ARCHIVO.exists() else []
+
+
+def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
+    con_oferta = {o.id.lstrip("0") for o in lista_ofertas if o.id}
+    cats, marcas = catalogo.resumen(encontrados)
+    st.markdown(f"<small>Catálogo de productos · {len(encontrados)} encontrados</small>", unsafe_allow_html=True)
+    if len(encontrados) > maximo:
+        st.caption("Por categoría: " + " · ".join(f"{c} ({n})" for c, n in cats.most_common(4))
+                   + "  \nPor marca: " + " · ".join(f"{m} ({n})" for m, n in marcas.most_common(5)))
+    st.markdown("\n".join(
+        f"- **{p.nombre}** · {p.marca} · _{p.categoria}_" + (" · 🏷️ en oferta" if p.sku.lstrip("0") in con_oferta else "")
+        for p in encontrados[:maximo]
+    ))
+    if len(encontrados) > maximo:
+        st.caption(f"Y {len(encontrados) - maximo} más: escribí más palabras para achicar la búsqueda.")
+    st.divider()
+
+
 OFERTAS_ETIQUETA = "💊 Ofertas OTC"
+CATALOGO_ETIQUETA = "🛍️ Catálogo"
 CAJONES_ETIQUETA = "🗄️ Cajones"
 
 
@@ -790,6 +812,7 @@ if consultas.ARCHIVO.exists():
         base = base_de_consultas(consultas.ARCHIVO.stat().st_mtime)
         lista_ofertas = ofertas_otc(ofertas.ARCHIVO.stat().st_mtime if ofertas.ARCHIVO.exists() else 0)
         items_cajones = mapa_de_cajones(cajones.ARCHIVO.stat().st_mtime if cajones.ARCHIVO.exists() else 0)
+        productos = catalogo_de_productos(catalogo.ARCHIVO.stat().st_mtime if catalogo.ARCHIVO.exists() else 0)
         hoy = consultas.hoy_argentina()
 
         # Lector de código de barras: foto del producto -> oferta, precio o dato cargado.
@@ -827,6 +850,9 @@ if consultas.ARCHIVO.exists():
         if lista_ofertas:
             etiquetas.insert(next((i + 1 for i, s in enumerate(base.secciones) if s.numero == "7"), len(etiquetas)),
                              OFERTAS_ETIQUETA)
+        if productos:
+            etiquetas.insert(next((i + 1 for i, e in enumerate(etiquetas) if e == OFERTAS_ETIQUETA), len(etiquetas)),
+                             CATALOGO_ETIQUETA)
         if items_cajones:
             etiquetas.insert(next((i + 1 for i, e in enumerate(etiquetas) if e.endswith("Mostrador")), len(etiquetas)),
                              CAJONES_ETIQUETA)
@@ -861,11 +887,17 @@ if consultas.ARCHIVO.exists():
                     st.markdown(f"<small>{titulo}</small>", unsafe_allow_html=True)
                     st.markdown(texto)
                     st.divider()
-                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon):
+                del_catalogo = catalogo.buscar(productos, pregunta)
+                if del_catalogo:
+                    mostrar_catalogo(del_catalogo, lista_ofertas)
+                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon or del_catalogo):
                     if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
                     else:
                         st.info(consultas.SIN_DATO)
+        elif categoria == CATALOGO_ETIQUETA:
+            st.markdown(f"**{len(productos)} productos** en el catálogo. Buscá por nombre, marca o categoría arriba.")
+            st.markdown("\n".join(f"- {c}: {n}" for c, n in catalogo.categorias(productos).most_common()))
         elif categoria == CAJONES_ETIQUETA:
             for cajon, contenido in cajones.mapa(items_cajones).items():
                 st.markdown(f"**🗄️ {cajon}**  \n" + " · ".join(
