@@ -549,22 +549,25 @@ if puede_ver_registros:
             vista = filtrar(pendientes, "pend")
             st.write(f"{len(vista)} registro(s) pendiente(s).")
             tabla = vista[list(COLUMNAS_REGISTRO)].rename(columns=COLUMNAS_REGISTRO)
-            tabla.insert(0, "Revisado", False)
             st.write(f"**{usuario['nombre']}**, tildá los que ya viste y confirmaste, y tocá el botón para pasarlos a **Revisados**.")
+            # "Seleccionar todo" tilda todos los que se ven ahora (respeta el filtro y la búsqueda).
+            todos = st.checkbox(f"Seleccionar todo ({len(tabla)})", key="todos_pend")
+            tabla.insert(0, "Revisado", todos)
             editada = st.data_editor(
                 tabla,
                 hide_index=True,
                 use_container_width=True,
                 disabled=[c for c in tabla.columns if c != "Revisado"],
                 column_config={"Revisado": st.column_config.CheckboxColumn("✔ Revisado", help="Visto y guardado por la farmacéutica")},
-                key="editor_pendientes",
+                key=f"editor_pendientes_{int(todos)}",  # al cambiar "Seleccionar todo" se arma de nuevo
             )
             tildados = editada[editada["Revisado"]]
             if st.button(
                 f"✅ Pasar {len(tildados)} a Revisados", type="primary", disabled=tildados.empty, key="pasar_revisados"
             ):
                 n = registro.marcar_revisados(list(zip(tildados["GTIN"], tildados["Serie"])), usuario["nombre"])
-                st.session_state.pop("editor_pendientes", None)
+                for clave in ("editor_pendientes_0", "editor_pendientes_1", "todos_pend"):
+                    st.session_state.pop(clave, None)
                 st.toast(f"{n} registro(s) pasaron a Revisados ✅")
                 st.rerun()
             descargas(tabla.drop(columns="Revisado"), "Listado de registros sin revisar", "pend")

@@ -99,3 +99,18 @@ def test_revisados_sin_columna_estado(tmp_path, monkeypatch):
     at.pills[0].set_value("Claudia").run()
     columnas = list(at.tabs[2].dataframe[0].value.columns)
     assert "Revisado por" in columnas and "Estado" not in columnas
+
+
+def test_seleccionar_todo_y_pasar_a_revisados(tmp_path, monkeypatch):
+    from lector import registro
+
+    monkeypatch.setattr(registro, "ARCHIVO", tmp_path / "registros.csv")
+    registro.guardar([dict(gtin="07795312020770", serie=s, usuario="Omar") for s in ("A1", "A2", "A3")])
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.pills[0].set_value("Fernanda").run()
+    at.checkbox(key="todos_pend").check().run()
+    boton = at.button(key="pasar_revisados")
+    assert boton.label == "✅ Pasar 3 a Revisados"
+    boton.click().run()
+    assert not at.exception
+    assert (registro.leer()["revisado_por"] == "Fernanda").all()
