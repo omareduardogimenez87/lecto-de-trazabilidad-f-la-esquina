@@ -1,4 +1,4 @@
-"""Lector de trazabilidad - Farmacia La Esquina.
+"""App Trazabilidad - Farmacia La Esquina.
 
 Para abrirla:  streamlit run app.py
 
@@ -57,7 +57,7 @@ def en_base64(archivo: Path) -> str:
 
 
 st.set_page_config(
-    page_title="Lector de trazabilidad",
+    page_title="App Trazabilidad",
     page_icon=str(ICONO_APP) if ICONO_APP.exists() else (str(ICONO) if ICONO.exists() else "💊"),
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -73,6 +73,12 @@ if ICONO_CELULAR.exists():
             if (!link) {{ link = doc.createElement("link"); link.rel = rel; link.dataset.celular = "1"; doc.head.appendChild(link); }}
             link.sizes = "180x180";
             link.href = "data:image/png;base64,{en_base64(ICONO_CELULAR)}";
+        }}
+        // Nombre del acceso directo en la pantalla de inicio.
+        for (const name of ["apple-mobile-web-app-title", "application-name"]) {{
+            let meta = doc.querySelector(`meta[name="${{name}}"]`);
+            if (!meta) {{ meta = doc.createElement("meta"); meta.name = name; doc.head.appendChild(meta); }}
+            meta.content = "App Trazabilidad";
         }}
         </script>""",
         height=0,
@@ -114,11 +120,11 @@ if ICONO.exists():
     st.markdown(
         f"""<h1 style="display:flex;align-items:center;gap:.5rem;padding-bottom:0">
         <img src="data:image/png;base64,{en_base64(ICONO)}" alt="" style="height:1.4em;width:1.4em">
-        Lector de trazabilidad</h1>""",
+        App Trazabilidad</h1>""",
         unsafe_allow_html=True,
     )
 else:
-    st.title("💊 Lector de trazabilidad")
+    st.title("💊 App Trazabilidad")
 st.caption(f"Farmacia La Esquina · Sucursal {SUCURSAL}")
 
 
