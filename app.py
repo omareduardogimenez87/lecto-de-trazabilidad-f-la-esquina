@@ -12,6 +12,7 @@ foto y la fecha. Se puede descargar en Excel. Las fotos NO se guardan.
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import io
 import json
@@ -376,9 +377,11 @@ def botones_de_foto(ronda: int) -> list:
 
 
 if puede_ver_registros:
-    tab_leer, tab_pendientes, tab_revisados = st.tabs(["📷 1. Leer fotos", "📄 2. Registros", "✅ 3. Revisados"])
+    # Las farmacéuticas tienen tres secciones, así que van en pestañas.
+    tab_leer, tab_pendientes, tab_revisados = st.tabs(["📷 Leer fotos", "📄 Registros", "✅ Revisados"])
 else:
-    (tab_leer,) = st.tabs(["📷 1. Leer fotos"])
+    # Mostrador (o sin nombre elegido): una sola sección, sin barra de pestañas.
+    tab_leer = contextlib.nullcontext()
     tab_pendientes = tab_revisados = None
 
 # ------------------------------------------------------------ función 1: leer
@@ -388,14 +391,16 @@ with tab_leer:
         getattr(st, tipo)(texto)
     st.session_state["avisos"] = []
 
-    if not usuario:
-        st.info("☝️ Primero tocá tu nombre.")
-    else:
-        st.write(
-            "Sacá una foto o elegila de la galería. Que se vea el **cuadradito (DataMatrix)** y los datos "
-            "impresos al lado, de cerca, con buena luz y sin reflejos. **Se lee sola al cargarla.**"
-        )
-        fotos = botones_de_foto(st.session_state["ronda"])
+    # Los botones de foto se ven de entrada, aun sin nombre elegido (pedido de Edu, 23/11/2026).
+    st.write(
+        "Sacá una foto o elegila de la galería. Que se vea el **cuadradito (DataMatrix)** y los datos "
+        "impresos al lado, de cerca, con buena luz y sin reflejos. **Se lee sola al cargarla.**"
+    )
+    fotos = botones_de_foto(st.session_state["ronda"])
+    # Si cargan una foto sin haber elegido quién es, se pide el nombre (la foto queda y se lee al elegirlo).
+    if fotos and not usuario:
+        st.warning("☝️ Antes de leer la foto, **tocá tu nombre** arriba. Tu nombre queda elegido hasta que cierres la app.")
+    if usuario:
         # Leer automáticamente las fotos nuevas (sin tener que tocar otro botón).
         nuevas = [f for f in fotos or [] if hashlib.sha1(f.getvalue()).hexdigest() not in st.session_state["leidas"]]
         if nuevas:
@@ -505,6 +510,36 @@ with tab_leer:
         st.session_state["leidas"] = set()
         st.rerun()
 
+def borrar_con_doble_confirmacion(clave: str, etiqueta: str, accion) -> None:
+    """Botón de borrar que pregunta dos veces antes de hacerlo (por si se tocó sin querer).
+    Paso 0: botón "Eliminar…" · Paso 1: "¿Seguro?" · Paso 2: "Última confirmación" → borra."""
+    paso = st.session_state.get(f"paso_{clave}", 0)
+
+    def ir_a(n):
+        st.session_state[f"paso_{clave}"] = n
+        st.rerun()
+
+    if paso == 0:
+        if st.button(etiqueta, key=f"{clave}_0"):
+            ir_a(1)
+    elif paso == 1:
+        st.warning("**¿Seguro que querés eliminar?** (pregunta 1 de 2)")
+        c1, c2 = st.columns(2)
+        if c1.button("Sí, seguir", key=f"{clave}_1_si", use_container_width=True):
+            ir_a(2)
+        if c2.button("Cancelar", key=f"{clave}_1_no", use_container_width=True):
+            ir_a(0)
+    else:
+        st.error("**Última confirmación:** se borra para siempre y **no se puede deshacer**. ¿Eliminar? (pregunta 2 de 2)")
+        c1, c2 = st.columns(2)
+        if c1.button("🗑️ Sí, eliminar", key=f"{clave}_2_si", type="primary", use_container_width=True):
+            st.session_state[f"paso_{clave}"] = 0
+            accion()
+            st.rerun()
+        if c2.button("Cancelar", key=f"{clave}_2_no", use_container_width=True):
+            ir_a(0)
+
+
 # ------------------------------------------------------------ función 2: registros
 
 def filtrar(datos, clave: str):
@@ -602,20 +637,18 @@ if puede_ver_registros:
                     st.session_state["aviso_rev"] = ("success", f"📦 Archivados: {detalle}.")
                     st.rerun()
 
-            # Eliminar todos: no se puede deshacer, por eso pide escribir BORRAR.
+            # Eliminar todos: no se puede deshacer, por eso pregunta dos veces.
             with st.expander(f"🗑️ Eliminar los {len(revisados)} revisados"):
                 st.warning(
                     "Esto **borra para siempre** todos los revisados (no solo los filtrados) y **no se puede deshacer**. "
                     "Si los querés guardar, mejor usá **Archivar por mes**. Los pendientes y los meses archivados no se tocan."
                 )
-                confirma = st.text_input("Para confirmar, escribí BORRAR", key="confirmar_borrar")
-                if st.button(
-                    f"🗑️ Eliminar {len(revisados)} revisados", key="btn_eliminar", disabled=confirma.strip().upper() != "BORRAR"
-                ):
+
+                def eliminar_todos():
                     n = registro.eliminar_revisados()
-                    st.session_state.pop("confirmar_borrar", None)
                     st.session_state["aviso_rev"] = ("info", f"🗑️ Se eliminaron {n} revisados.")
-                    st.rerun()
+
+                borrar_con_doble_confirmacion("eliminar_rev", f"🗑️ Eliminar {len(revisados)} revisados", eliminar_todos)
 
         aviso = st.session_state.pop("aviso_rev", None)
         if aviso:
@@ -645,15 +678,23 @@ if puede_ver_registros:
                         f"Esto **borra para siempre** los {len(del_mes)} registro(s) de {registro.nombre_del_mes(mes)} "
                         "y **no se puede deshacer**. Antes bajá el Excel con el botón de arriba."
                     )
-                    confirma_mes = st.text_input("Para confirmar, escribí BORRAR", key=f"confirmar_mes_{mes}")
-                    if st.button(
-                        f"🗑️ Eliminar {registro.nombre_del_mes(mes)}", key=f"btn_eliminar_mes_{mes}",
-                        disabled=confirma_mes.strip().upper() != "BORRAR",
-                    ):
+
+                    def eliminar_este_mes(mes=mes):
                         n = registro.eliminar_mes(mes)
-                        st.session_state.pop(f"confirmar_mes_{mes}", None)
                         st.session_state.pop("mes_archivo", None)
                         st.session_state["aviso_rev"] = ("info", f"🗑️ Se eliminó {registro.nombre_del_mes(mes)} ({n} registros).")
-                        st.rerun()
+
+                    borrar_con_doble_confirmacion(
+                        f"eliminar_mes_{mes}", f"🗑️ Eliminar {registro.nombre_del_mes(mes)}", eliminar_este_mes
+                    )
             else:
                 st.caption("Este mes todavía no terminó. Cuando empiece el mes siguiente, vas a poder eliminar su archivo.")
+
+# ------------------------------------------------------------ pie de página (marca de agua)
+# Leyenda al final de la app, en gris y letra chica, visible en todas las pantallas.
+st.markdown(
+    """<div style="text-align:center; color:#9a9a9a; font-size:0.8rem; margin-top:2.5rem; padding-top:1rem; border-top:1px solid rgba(49,51,63,0.1);">
+    Diseño y desarrollo: Omar Eduardo Giménez · Con la ayuda de Claude Code
+    </div>""",
+    unsafe_allow_html=True,
+)

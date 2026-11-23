@@ -132,9 +132,13 @@ def test_archivar_y_eliminar_desde_revisados(tmp_path, monkeypatch):
     registro.guardar([dict(gtin="07795312020770", serie="A3", usuario="Omar")])
     registro.marcar_revisados([("07795312020770", "A3")], "Claudia")
     at.run()
-    assert at.button(key="btn_eliminar").disabled
-    at.text_input(key="confirmar_borrar").input("borrar").run()
-    at.button(key="btn_eliminar").click().run()
+    at.button(key="eliminar_rev_0").click().run()
+    at.button(key="eliminar_rev_1_no").click().run()  # cancelar en la primera pregunta: no borra
+    assert len(registro.leer()) == 2
+    at.button(key="eliminar_rev_0").click().run()
+    at.button(key="eliminar_rev_1_si").click().run()
+    assert len(registro.leer()) == 2  # todavía falta la segunda pregunta
+    at.button(key="eliminar_rev_2_si").click().run()
     assert not at.exception
     assert list(registro.leer()["serie"]) == ["A2"]
 
@@ -149,6 +153,18 @@ def test_eliminar_mes_terminado_desde_la_pantalla(tmp_path, monkeypatch):
     at = AppTest.from_file(APP, default_timeout=60).run()
     at.pills[0].set_value("Claudia").run()
     assert any("octubre 2020" in i.value for i in at.info)
-    at.text_input(key="confirmar_mes_2020-10").input("BORRAR").run()
-    at.button(key="btn_eliminar_mes_2020-10").click().run()
+    at.button(key="eliminar_mes_2020-10_0").click().run()
+    at.button(key="eliminar_mes_2020-10_1_si").click().run()
+    at.button(key="eliminar_mes_2020-10_2_si").click().run()
     assert not at.exception and registro.meses_archivados() == []
+
+
+def test_botones_de_foto_visibles_sin_nombre_y_pie_de_pagina():
+    # Sin nombre elegido: los botones de foto ya se ven, y el pie de página también.
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    assert not at.exception
+    assert not at.pills[0].value  # nadie elegido todavía
+    claves = [u.key for u in at.get("file_uploader")]
+    assert any(k and k.startswith("camara") for k in claves)
+    assert any(k and k.startswith("galeria") for k in claves)
+    assert any("Omar Eduardo Giménez" in m.value for m in at.markdown)
