@@ -77,5 +77,10 @@ def test_la_app_muestra_consultas():
     caja.input("zzzqqq").run()
     assert any(consultas.SIN_DATO in i.value for i in at.info)
     caja.input("").run()
-    next(p for p in at.pills if p.key == "consulta_cat").set_value("🏷️ Promos").run()
-    assert not at.exception and any("Andrómaco" in m.value for m in at.markdown)
+    cat = next(p for p in at.pills if p.key == "consulta_cat")
+    nombres = {o.split(" ", 1)[-1] if not o[0].isalpha() else o for o in cat.options}
+    assert nombres == {"Programas", "PICC Elea", "Ofertas OTC", "Cajones", "Ayuda de la app"}
+    cat.set_value("💉 PICC Elea").run()
+    assert not at.exception and any("Alvetide" in m.value for m in at.markdown)
+    caja.input("andromaco").run()  # las promos se siguen encontrando escribiendo
+    assert any("Andrómaco" in m.value for m in at.markdown)

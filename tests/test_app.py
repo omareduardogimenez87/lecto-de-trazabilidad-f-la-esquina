@@ -170,10 +170,12 @@ def test_botones_de_foto_visibles_sin_nombre_y_pie_de_pagina():
     assert any("Omar Eduardo Giménez" in m.value for m in at.markdown)
 
 
-def test_hay_ayuda_sin_ia():
+def test_la_ayuda_se_responde_desde_el_buscador():
     at = AppTest.from_file(APP, default_timeout=60).run()
     assert not at.exception
-    assert any("Ayuda" in e.label for e in at.expander)
+    assert not any("preguntas frecuentes" in e.label for e in at.expander)  # ya no hay desplegable aparte
+    next(t for t in at.text_input if t.key == "consulta_txt").input("la foto no se lee").run()
+    assert any("La foto no se lee" in m.value for m in at.markdown)
 
 
 def test_notas_solo_omar_las_ve_y_borra(tmp_path, monkeypatch):

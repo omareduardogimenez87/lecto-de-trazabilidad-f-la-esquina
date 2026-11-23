@@ -56,10 +56,10 @@ Abajo de las fotos hay una sección **💬 Consultas rápidas** (sin IA, no usa 
 > Ojo: la app es pública, así que cualquiera con el link ve estos datos (horarios, token, códigos).
 
 ### 📝 Nota u observación
-Al elegir tu nombre aparece **📝 Nota u observación** para dejar algo que haya que cambiar o agregar a la app. Cada uno ve las notas que escribió hasta que cierra la app. **Omar** (`"ve_notas": true` en `usuarios.json`) ve todas, con quién y cuándo, y las borra con **✅ Listo, borrar** a medida que aplica los cambios. Se guardan en la pestaña **Notas** de la planilla (en la PC, `registros/notas.csv`). Opcional: si se agrega `clave_notas = "..."` en Secrets, la app pide esa clave para ver las notas.
+Al elegir tu nombre aparece, chiquito debajo de los botones de foto, **📝 Nota u observación** para dejar algo que haya que cambiar o agregar a la app. Cada uno ve las notas que escribió hasta que cierra la app. **Omar** (`"ve_notas": true` en `usuarios.json`) ve todas, con quién y cuándo, y las borra con **✅ Listo, borrar** a medida que aplica los cambios. Se guardan en la pestaña **Notas** de la planilla (en la PC, `registros/notas.csv`). Opcional: si se agrega `clave_notas = "..."` en Secrets, la app pide esa clave para ver las notas.
 
 ### ❓ Ayuda
-Al final de la app hay una sección **❓ Ayuda** con preguntas frecuentes y respuestas cortas (sin IA, no usa internet): cómo cargar un envase, qué significan ✅/⚠️/❌, foto que no se lee, duplicados, Registros/Revisados, archivar o eliminar un mes y descargar el Excel.
+La ayuda está dentro de **💬 Consultas rápidas y ayuda** (sin IA, no usa internet): se escribe la duda en el mismo buscador ("la foto no se lee", "archivar", "descargar excel") o se toca **❓ Ayuda de la app** para ver todas las preguntas frecuentes. Los botones de categoría que quedan son Programas, PICC Elea, Ofertas OTC, Cajones y Ayuda; el resto de los datos se encuentra escribiendo.
 
 ### 🛠️ Soporte Área TI
 Al final de la app hay un botón **🛠️ Soporte Área TI** que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña.
