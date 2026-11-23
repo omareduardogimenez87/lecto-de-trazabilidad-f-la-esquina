@@ -137,3 +137,18 @@ def test_archivar_y_eliminar_desde_revisados(tmp_path, monkeypatch):
     at.button(key="btn_eliminar").click().run()
     assert not at.exception
     assert list(registro.leer()["serie"]) == ["A2"]
+
+
+def test_eliminar_mes_terminado_desde_la_pantalla(tmp_path, monkeypatch):
+    from lector import registro
+
+    monkeypatch.setattr(registro, "ARCHIVO", tmp_path / "registros.csv")
+    registro.guardar([dict(gtin="07795312020770", serie="V", usuario="Omar", fecha_registro="15/10/2020 10:00:00")])
+    registro.marcar_revisados([("07795312020770", "V")], "Claudia")
+    registro.archivar_revisados()
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.pills[0].set_value("Claudia").run()
+    assert any("octubre 2020" in i.value for i in at.info)
+    at.text_input(key="confirmar_mes_2020-10").input("BORRAR").run()
+    at.button(key="btn_eliminar_mes_2020-10").click().run()
+    assert not at.exception and registro.meses_archivados() == []

@@ -320,6 +320,28 @@ def eliminar_revisados(archivo=None) -> int:
     return len(df) - len(quedan)
 
 
+def mes_cerrado(mes: str) -> bool:
+    """True si el mes ya terminó (es anterior al mes actual de Argentina)."""
+    return mes < ahora().strftime("%Y-%m")
+
+
+def eliminar_mes(mes: str, archivo=None) -> int:
+    """Borra para siempre el archivo de un mes que ya terminó. Devuelve cuántos registros tenía."""
+    if not mes_cerrado(mes):
+        raise ValueError("Solo se pueden eliminar meses que ya terminaron.")
+    lugar = _carpeta_archivo(_destino(archivo))
+    destino = _destino_mes(lugar, mes)
+    if destino is None:
+        return 0
+    n = len(leer(destino))
+    if isinstance(destino, Path):
+        destino.unlink()
+    else:
+        lugar.del_worksheet(destino)
+    _cache_archivo.clear()
+    return n
+
+
 def _buscar_en_archivo(gtin: str, serie: str, archivo) -> dict | None:
     """Busca la unidad también en los meses archivados (para avisar duplicados)."""
     for mes in meses_archivados(archivo):

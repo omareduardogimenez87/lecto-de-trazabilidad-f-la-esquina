@@ -154,6 +154,9 @@ class LibroFalso:
     def worksheets(self):
         return list(self.hojas)
 
+    def del_worksheet(self, hoja):
+        self.hojas.remove(hoja)
+
     def add_worksheet(self, title, rows, cols):
         hoja = HojaFalsa()
         hoja.title, hoja.spreadsheet = title, self
@@ -172,5 +175,34 @@ def test_archivar_por_mes_en_google_sheets():
         assert [h.title for h in libro.hojas] == ["Hoja 1", "Revisados 2026-11"]
         assert list(registro.leer()["serie"]) == ["B"]
         assert list(registro.leer_mes("2026-11")["serie"]) == ["A"]
+    finally:
+        registro.usar_planilla(None)
+
+
+def test_eliminar_mes_cerrado(tmp_path):
+    import pytest
+
+    archivo = tmp_path / "registros.csv"
+    actual = registro.ahora().strftime("%d/%m/%Y 10:00:00")
+    registro.guardar([_fila(serie="OCT", fecha_registro="15/10/2020 10:00:00"), _fila(serie="HOY", fecha_registro=actual)], archivo)
+    registro.marcar_revisados([("07795312020770", "OCT"), ("07795312020770", "HOY")], "Claudia", archivo)
+    registro.archivar_revisados(archivo)
+    mes_actual = registro.ahora().strftime("%Y-%m")
+    assert registro.mes_cerrado("2020-10") and not registro.mes_cerrado(mes_actual)
+    with pytest.raises(ValueError):
+        registro.eliminar_mes(mes_actual, archivo)
+    assert registro.eliminar_mes("2020-10", archivo) == 1
+    assert registro.meses_archivados(archivo) == [mes_actual]
+
+
+def test_eliminar_mes_en_google_sheets():
+    libro = LibroFalso()
+    registro.usar_planilla(libro.add_worksheet("Hoja 1", 1000, 18))
+    try:
+        registro.guardar([_fila(serie="A", fecha_registro="15/10/2020 10:00:00")])
+        registro.marcar_revisados([("07795312020770", "A")], "Claudia")
+        registro.archivar_revisados()
+        assert registro.eliminar_mes("2020-10") == 1
+        assert [h.title for h in libro.hojas] == ["Hoja 1"]
     finally:
         registro.usar_planilla(None)

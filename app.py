@@ -624,6 +624,12 @@ if puede_ver_registros:
         meses = registro.meses_archivados()
         if meses:
             st.subheader("📦 Meses archivados")
+            cerrados = [registro.nombre_del_mes(m) for m in meses if registro.mes_cerrado(m)]
+            if cerrados:
+                st.info(
+                    f"Ya terminó: **{', '.join(cerrados)}**. Si ya bajaste el Excel, podés eliminar ese archivo: "
+                    "elegí el mes acá abajo."
+                )
             mes = st.selectbox("Mes", meses, format_func=lambda m: registro.nombre_del_mes(m).capitalize(), key="mes_archivo")
             del_mes = registro.leer_mes(mes)
             st.write(f"{len(del_mes)} registro(s) en {registro.nombre_del_mes(mes)}.")
@@ -631,3 +637,23 @@ if puede_ver_registros:
             tabla_mes = del_mes.iloc[::-1][list(columnas)].rename(columns=columnas)
             st.dataframe(tabla_mes, hide_index=True, use_container_width=True)
             descargas(tabla_mes, f"Listado de revisados de {registro.nombre_del_mes(mes)}", f"mes_{mes}")
+
+            # Cuando un mes ya terminó, se puede eliminar su archivo (después de bajar el Excel).
+            if registro.mes_cerrado(mes):
+                with st.expander(f"🗑️ Eliminar el archivo de {registro.nombre_del_mes(mes)}"):
+                    st.warning(
+                        f"Esto **borra para siempre** los {len(del_mes)} registro(s) de {registro.nombre_del_mes(mes)} "
+                        "y **no se puede deshacer**. Antes bajá el Excel con el botón de arriba."
+                    )
+                    confirma_mes = st.text_input("Para confirmar, escribí BORRAR", key=f"confirmar_mes_{mes}")
+                    if st.button(
+                        f"🗑️ Eliminar {registro.nombre_del_mes(mes)}", key=f"btn_eliminar_mes_{mes}",
+                        disabled=confirma_mes.strip().upper() != "BORRAR",
+                    ):
+                        n = registro.eliminar_mes(mes)
+                        st.session_state.pop(f"confirmar_mes_{mes}", None)
+                        st.session_state.pop("mes_archivo", None)
+                        st.session_state["aviso_rev"] = ("info", f"🗑️ Se eliminó {registro.nombre_del_mes(mes)} ({n} registros).")
+                        st.rerun()
+            else:
+                st.caption("Este mes todavía no terminó. Cuando empiece el mes siguiente, vas a poder eliminar su archivo.")
