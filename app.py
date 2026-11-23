@@ -206,6 +206,43 @@ def datos_de(it: dict) -> dict:
     return datos
 
 
+def faltantes(datos: dict) -> list[str]:
+    """Lo que falta para poder guardar (vacío = se puede guardar)."""
+    faltan = []
+    if not gtin_es_valido(datos["gtin"]):
+        faltan.append("el GTIN no cierra con el dígito verificador" if datos["gtin"] else "falta el GTIN")
+    if not datos["serie"]:
+        faltan.append("falta la serie")
+    return faltan
+
+
+def se_puede_guardar_junto(it: dict) -> bool:
+    """Entra en "Guardar X fotos": se leyó bien (✅ o ⚠️), tiene GTIN y serie y no es un duplicado pendiente."""
+    return it["estado"] != ESTADO_OTRA_FOTO and not faltantes(datos_de(it)) and not it.get("duplicado")
+
+
+def guardar_varios(lista: list[dict]) -> None:
+    """Guarda de una vez todas las lecturas buenas. Las que ya estaban cargadas quedan
+    en pantalla con el aviso de duplicado, para elegir qué hacer con cada una."""
+    guardadas = 0
+    for it in lista:
+        fila = fila_de(it)
+        previo = registro.buscar(fila["gtin"], fila["serie"])
+        if previo:
+            it["duplicado"] = previo
+            continue
+        registro.guardar([fila])
+        cerrar_tarjeta(it, None)
+        guardadas += 1
+    if guardadas:
+        st.session_state["avisos"].append(("success", f"✅ Se guardaron {guardadas} foto(s)."))
+    duplicadas = len(lista) - guardadas
+    if duplicadas:
+        st.session_state["avisos"].append(
+            ("warning", f"⚠️ {duplicadas} ya estaba(n) cargada(s): quedaron abajo para que elijas si reemplazar o descartar.")
+        )
+
+
 def fila_de(it: dict) -> dict:
     """Arma la fila del registro con los datos de la tarjeta."""
     datos = datos_de(it)
@@ -232,7 +269,8 @@ def fila_de(it: dict) -> dict:
 
 def cerrar_tarjeta(it: dict, aviso: tuple[str, str]) -> None:
     """Saca la tarjeta de la pantalla y deja todo listo para el próximo envase."""
-    st.session_state["avisos"].append(aviso)
+    if aviso:
+        st.session_state["avisos"].append(aviso)
     st.session_state["items"] = [x for x in st.session_state["items"] if x["id"] != it["id"]]
     for clave in [f"{c}_{it['id']}" for c, _ in CAMPOS] + [f"otra_{it['id']}"]:
         st.session_state.pop(clave, None)
@@ -364,17 +402,33 @@ with tab_leer:
                         st.error(f"No se pudo abrir {foto.name}: {e}")
 
     items = st.session_state["items"] if usuario else []
+
+    # Varias fotos a la vez: un solo botón para guardar todas las que se leyeron bien.
+    if len(items) > 1:
+        buenas = [it for it in items if se_puede_guardar_junto(it)]
+        malas = [it for it in items if it["estado"] == ESTADO_OTRA_FOTO or faltantes(datos_de(it))]
+        with st.container(border=True):
+            if buenas:
+                if st.button(f"💾 Guardar {len(buenas)} foto(s)", type="primary", key="guardar_todas", use_container_width=True):
+                    guardar_varios(buenas)
+                    st.rerun()
+                if any(it["estado"] != ESTADO_OK for it in buenas):
+                    st.caption("Las marcadas ⚠️ se leyeron del texto impreso: miralas abajo antes de guardar.")
+            if malas:
+                nombres = ", ".join(f"**{it['archivo_foto']}**" for it in malas)
+                if buenas:
+                    texto = f"Se guardan todas **excepto {len(malas)}** que no se leyeron bien: {nombres}."
+                else:
+                    texto = f"Ninguna foto se leyó bien: {nombres}."
+                st.warning(texto + " **Volvé a sacar esa(s) foto(s)**: están abajo, marcadas con ❌.")
+
     for it in items:
         lec = it["lectura"]
         with st.container(border=True):
             # Arriba de todo: el estado y el botón Guardar, para no tener que bajar con el scroll.
             st.markdown(f"### {it['estado']}")
             datos = datos_de(it)
-            faltan = []
-            if not gtin_es_valido(datos["gtin"]):
-                faltan.append("el GTIN no cierra con el dígito verificador" if datos["gtin"] else "falta el GTIN")
-            if not datos["serie"]:
-                faltan.append("falta la serie")
+            faltan = faltantes(datos)
             previo = it.get("duplicado")
             if previo and (previo.get("gtin"), previo.get("serie")) != (datos["gtin"], datos["serie"]):
                 it.pop("duplicado")  # se corrigió el GTIN o la serie: ya no es el mismo envase

@@ -40,3 +40,36 @@ def test_registros_sin_columna_estado(tmp_path, monkeypatch):
     assert not at.exception
     columnas = list(at.tabs[1].dataframe[0].value.columns)
     assert "GTIN" in columnas and "Estado" not in columnas
+
+
+def _item(n, estado, gtin="07795312020770", serie=None):
+    import io
+
+    from PIL import Image
+
+    foto = io.BytesIO()
+    Image.new("RGB", (10, 10), "white").save(foto, "PNG")
+    return dict(
+        id=f"id{n}", foto=foto.getvalue(), archivo_foto=f"foto{n}.jpg", fecha_foto="22/11/2026 10:00:00",
+        origen_fecha_foto="prueba", estado=estado, motivos=[], nitidez=100.0,
+        lectura=dict(gtin=gtin, serie=serie or f"S{n}", lote="L", vencimiento="", elaboracion="", fuente="DataMatrix"),
+    )
+
+
+def test_guardar_varias_fotos_menos_las_malas(tmp_path, monkeypatch):
+    from lector import registro
+    from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO
+
+    monkeypatch.setattr(registro, "ARCHIVO", tmp_path / "registros.csv")
+    at = AppTest.from_file(APP, default_timeout=60)
+    at.session_state["items"] = [_item(1, ESTADO_OK), _item(2, ESTADO_OK), _item(3, ESTADO_OTRA_FOTO, gtin="123")]
+    at.run()
+    at.pills[0].set_value("Omar").run()
+    boton = next(b for b in at.button if b.key == "guardar_todas")
+    assert boton.label == "💾 Guardar 2 foto(s)"
+    aviso = next(w.value for w in at.warning if "excepto" in w.value)
+    assert "excepto 1" in aviso and "foto3.jpg" in aviso
+    boton.click().run()
+    assert not at.exception
+    assert sorted(registro.leer()["serie"]) == ["S1", "S2"]
+    assert [it["archivo_foto"] for it in at.session_state["items"]] == ["foto3.jpg"]
