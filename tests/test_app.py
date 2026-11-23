@@ -232,3 +232,14 @@ def test_whatsapp_configurable_por_secrets_agrega_549():
     textos = " ".join(m.value for m in at.markdown)
     assert "https://wa.me/5493856210820?text=" in textos
     assert "mailto:prueba@ejemplo.com?" in textos
+
+
+def test_escaneo_apagado_por_defecto_y_se_prende_por_secrets():
+    apagado = AppTest.from_file(APP, default_timeout=60).run()
+    prendido = AppTest.from_file(APP, default_timeout=60)
+    prendido.secrets["escaneo_activo"] = True
+    prendido.run()
+    def hay(at):
+        return any("foto_codigo" in str(getattr(u, "proto", u)) for u in at.get("file_uploader"))
+    assert not hay(apagado)
+    assert hay(prendido)

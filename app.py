@@ -150,6 +150,11 @@ def secretos() -> dict:
         return {}
 
 
+# Botón "Escanear código o producto" del Asistente. Apagado hasta tener los códigos cargados;
+# se prende en Secrets con  escaneo_activo = true  (el código del lector queda intacto).
+ESCANEO_ACTIVO = str(secretos().get("escaneo_activo", False)).strip().lower() in ("true", "1", "si", "sí")
+
+
 @st.cache_resource(show_spinner="Conectando con la planilla de registros…")
 def abrir_planilla(cuenta: tuple, url: str):
     import gspread
@@ -991,27 +996,29 @@ if consultas.ARCHIVO.exists():
                 col_btn.form_submit_button("🔎", key="btn_buscar", use_container_width=True, help="Buscar")
         components.html(SCRIPT_VOZ, height=0)
 
-        # Lector de código de barras: foto del producto -> oferta, precio o dato cargado.
-        st.session_state.setdefault("ronda_codigo", 0)
-        # Un solo botón grande que abre la cámara (sin el "Upload" ni el texto de Streamlit).
-        with st.container(key="escanear"):
-            foto_codigo = st.file_uploader(
-                "Escanear código o producto", type=TIPOS_FOTO, key=f"foto_codigo_{st.session_state['ronda_codigo']}",
-                label_visibility="collapsed",
-            )
-        if foto_codigo is not None:
-            try:
-                codigos = leer_codigos_de_producto(abrir(foto_codigo))
-            except Exception:
-                codigos = []
-            if not codigos:
-                st.warning("No se pudo leer el código de barras. Sacá la foto de cerca, derecha y con buena luz, "
-                           "o escribí el número en el buscador.")
-            for codigo in codigos:
-                responder_codigo(codigo, base, lista_ofertas, hoy)
-            if st.button("🧹 Limpiar foto", key="limpiar_codigo"):
-                st.session_state["ronda_codigo"] += 1
-                st.rerun()
+        # Escaneo apagado hasta tener los códigos cargados. Para activarlo: en Secrets, escaneo_activo = true
+        if ESCANEO_ACTIVO:
+            # Lector de código de barras: foto del producto -> oferta, precio o dato cargado.
+            st.session_state.setdefault("ronda_codigo", 0)
+            # Un solo botón grande que abre la cámara (sin el "Upload" ni el texto de Streamlit).
+            with st.container(key="escanear"):
+                foto_codigo = st.file_uploader(
+                    "Escanear código o producto", type=TIPOS_FOTO, key=f"foto_codigo_{st.session_state['ronda_codigo']}",
+                    label_visibility="collapsed",
+                )
+            if foto_codigo is not None:
+                try:
+                    codigos = leer_codigos_de_producto(abrir(foto_codigo))
+                except Exception:
+                    codigos = []
+                if not codigos:
+                    st.warning("No se pudo leer el código de barras. Sacá la foto de cerca, derecha y con buena luz, "
+                               "o escribí el número en el buscador.")
+                for codigo in codigos:
+                    responder_codigo(codigo, base, lista_ofertas, hoy)
+                if st.button("🧹 Limpiar foto", key="limpiar_codigo"):
+                    st.session_state["ronda_codigo"] += 1
+                    st.rerun()
 
         st.markdown(
             "<style>.st-key-categorias [data-testid='stButtonGroup'] button p { font-size: .95rem !important; }"
