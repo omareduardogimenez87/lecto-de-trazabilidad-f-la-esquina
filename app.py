@@ -46,7 +46,9 @@ COLUMNAS_REGISTRO = {
 }
 
 IMAGENES = Path(__file__).parent / "imagenes"
-ICONO = IMAGENES / "icono.png"  # la cruz de Farmacia La Esquina
+ICONO = IMAGENES / "icono.png"  # la cruz de Farmacia La Esquina (logo del título)
+ICONO_APP = IMAGENES / "icono_app.png"  # cruz pixelada con ojitos: ícono de la pestaña
+ICONO_CELULAR = IMAGENES / "icono_celular.png"  # mismo ícono con fondo blanco, para el acceso directo del celular
 MARCA_DE_AGUA = IMAGENES / "marca_de_agua.png"  # logo "la esquina", casi transparente
 
 
@@ -56,10 +58,25 @@ def en_base64(archivo: Path) -> str:
 
 st.set_page_config(
     page_title="Lector de trazabilidad",
-    page_icon=str(ICONO) if ICONO.exists() else "💊",
+    page_icon=str(ICONO_APP) if ICONO_APP.exists() else (str(ICONO) if ICONO.exists() else "💊"),
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# Ícono para "Agregar a la pantalla de inicio" del celular (Streamlit no trae opción para esto).
+if ICONO_CELULAR.exists():
+    components.html(
+        f"""<script>
+        const doc = window.parent.document;
+        for (const rel of ["apple-touch-icon", "icon"]) {{
+            let link = doc.querySelector(`link[rel="${{rel}}"][data-celular]`);
+            if (!link) {{ link = doc.createElement("link"); link.rel = rel; link.dataset.celular = "1"; doc.head.appendChild(link); }}
+            link.sizes = "180x180";
+            link.href = "data:image/png;base64,{en_base64(ICONO_CELULAR)}";
+        }}
+        </script>""",
+        height=0,
+    )
 # Botones de nombres y pestañas más grandes y separados (pedido de Edu, 22/11/2026).
 # El violeta del seleccionado viene de primaryColor en .streamlit/config.toml.
 st.markdown(
