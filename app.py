@@ -63,8 +63,15 @@ st.set_page_config(
 # El violeta del seleccionado viene de primaryColor en .streamlit/config.toml.
 st.markdown(
     """<style>
-    [data-testid="stButtonGroup"] [role="radiogroup"] { gap: .75rem !important; }
-    [data-testid="stButtonGroup"] button { padding: .55rem 1.3rem !important; min-height: 3rem; }
+    /* Nombres en grilla pareja: 2 por fila en el celular (Claudia-Fernanda / Silvia-Yessi / Maxi-Omar)
+       y 3 por fila en pantallas más anchas, así Maxi y Omar quedan siempre juntos al final. */
+    [data-testid="stButtonGroup"] [role="radiogroup"] {
+        display: grid !important; grid-template-columns: repeat(2, 1fr); gap: .75rem !important;
+    }
+    @media (min-width: 480px) {
+        [data-testid="stButtonGroup"] [role="radiogroup"] { grid-template-columns: repeat(3, 1fr); }
+    }
+    [data-testid="stButtonGroup"] button { padding: .55rem .8rem !important; min-height: 3rem; width: 100%; }
     [data-testid="stButtonGroup"] button p { font-size: 1.15rem !important; }
     [role="tablist"] { gap: .6rem !important; }
     [data-testid="stTab"] { padding: .6rem 0 !important; }
