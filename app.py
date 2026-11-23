@@ -857,7 +857,7 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
 OFERTAS_ETIQUETA = "💊 Ofertas OTC"
 AYUDA_ETIQUETA = "❓ Ayuda de la app"
 SECCIONES_CON_BOTON = ("5", "6")  # Programas y PICC Elea
-TITULO_AYUDANTE = "💬 Chatear con el ayudante"  # no usa IA: busca en los archivos de la carpeta consultas
+TITULO_AYUDANTE = "Asistente La Esquina"  # no usa IA: busca en los archivos de la carpeta consultas
 CATALOGO_ETIQUETA = "🛍️ Catálogo"
 CAJONES_ETIQUETA = "🗄️ Cajones"
 
@@ -895,7 +895,8 @@ def responder_codigo(codigo: str, base, lista, hoy) -> None:
 
 
 if consultas.ARCHIVO.exists():
-    with st.expander("💬 Consultas rápidas y ayuda"):
+    # Siempre a la vista (sin desplegable), así no se cierra ni se abre solo al buscar o escanear.
+    with st.container(border=True, key="consultas"):
         base = base_de_consultas(consultas.ARCHIVO.stat().st_mtime)
         lista_ofertas = ofertas_otc(ofertas.ARCHIVO.stat().st_mtime if ofertas.ARCHIVO.exists() else 0)
         items_cajones = mapa_de_cajones(cajones.ARCHIVO.stat().st_mtime if cajones.ARCHIVO.exists() else 0)
@@ -903,7 +904,15 @@ if consultas.ARCHIVO.exists():
         hoy = consultas.hoy_argentina()
 
         # Arriba: el buscador ("ayudante", sin IA). Debajo: escanear el código del producto.
-        st.markdown(f"**{TITULO_AYUDANTE}**")
+        # Encabezado con el ayudante: la cruz pixelada con ojitos (el ícono de la app), más grande y amigable.
+        avatar = (f'<img src="data:image/png;base64,{en_base64(ICONO_APP)}" alt="" style="height:3rem; width:3rem; '
+                  f'image-rendering:pixelated; background:#f4f7e1; border-radius:50%; padding:.3rem;">') if ICONO_APP.exists() else "🤖"
+        st.markdown(
+            f'<div style="display:flex; align-items:center; gap:.7rem; margin-bottom:.2rem;">{avatar}'
+            f'<div><div style="font-size:1.2rem; font-weight:700; line-height:1.2;">{TITULO_AYUDANTE}</div>'
+            f'<div style="font-size:.85rem; color:#6b6b6b;">Consultas rápidas y ayuda de la app</div></div></div>',
+            unsafe_allow_html=True,
+        )
         st.caption("Escribí una palabra o el número del código (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
                    "quién trabaja hoy, la foto no se lee). Para los cajones sirve aunque esté mal escrito.")
         pregunta = st.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
@@ -1030,15 +1039,15 @@ LOGO_TI = IMAGENES / "logo_ti.png"
 URL_TICKETS = "https://area-t-i-tickets.vercel.app/"
 if LOGO_TI.exists():
     st.markdown(
-        # Colores de Área TI: fondo negro (#0B0B14, el de su página), borde degradé violeta → verde y un brillo suave.
-        f"""<a href="{URL_TICKETS}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center;
-        gap:.7rem; padding:.6rem 1rem; border:2px solid transparent; border-radius:.75rem; text-decoration:none;
-        color:#ffffff; font-weight:600; letter-spacing:.2px;
-        background: linear-gradient(#0B0B14, #0B0B14) padding-box, linear-gradient(90deg, #8B5CF6, #22C55E) border-box;
-        box-shadow: 0 0 12px rgba(139, 92, 246, .35), 0 0 18px rgba(34, 197, 94, .2);">
-        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:2.3rem; width:2.3rem; border-radius:50%;
-        box-shadow: 0 0 0 2px #22C55E;">
-        <span>Reportar incidencia a <span style="color:#A78BFA">Equipo</span> <span style="color:#4ADE80">TI</span></span></a>""",
+        # Colores de Área TI, pero discreto (pedido de Edu): botón chico y centrado, fondo claro,
+        # borde fino degradé violeta → verde y el logo redondo con aro verde.
+        f"""<div style="text-align:center;"><a href="{URL_TICKETS}" target="_blank" rel="noopener" style="display:inline-flex;
+        align-items:center; gap:.4rem; padding:.25rem .7rem; border:1px solid transparent; border-radius:999px;
+        text-decoration:none; color:#31333f; font-size:.82rem; font-weight:500;
+        background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #8B5CF6, #22C55E) border-box;">
+        <img src="data:image/png;base64,{en_base64(LOGO_TI)}" alt="" style="height:1.2rem; width:1.2rem; border-radius:50%;
+        box-shadow: 0 0 0 1px #22C55E;">
+        <span>Reportar incidencia a <span style="color:#7C3AED">Equipo</span> <span style="color:#16A34A">TI</span></span></a></div>""",
         unsafe_allow_html=True,
     )
 else:
