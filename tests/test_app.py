@@ -222,3 +222,13 @@ def test_boton_correo_sucursal():
     at = AppTest.from_file(APP, default_timeout=60).run()
     enlaces = [m.value for m in at.markdown if "mailto:esquinamitre@fesquina.com.ar" in m.value]
     assert enlaces and "body=Te%20adjunto%20archivos%20para%20imprimir" in enlaces[0]
+
+
+def test_whatsapp_configurable_por_secrets_agrega_549():
+    at = AppTest.from_file(APP, default_timeout=60)
+    at.secrets["whatsapp_destino"] = "385 621-0820"
+    at.secrets["correo_destino"] = "prueba@ejemplo.com"
+    at.run()
+    textos = " ".join(m.value for m in at.markdown)
+    assert "https://wa.me/5493856210820?text=" in textos
+    assert "mailto:prueba@ejemplo.com?" in textos

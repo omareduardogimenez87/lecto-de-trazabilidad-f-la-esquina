@@ -1196,7 +1196,21 @@ ENVIAR_PARA_IMPRIMIR = """
 components.html(ENVIAR_PARA_IMPRIMIR, height=172)
 
 # WhatsApp de la sucursal Mitre, con el mensaje ya escrito.
-URL_WHATSAPP = "https://wa.me/5493854750195?text=" + quote("Te comparto un archivo para imprimir")
+# Por defecto, los de la Mitre. Para probar con otros datos, en Secrets:
+#   whatsapp_destino = "3856210820"   (con o sin +54 9: la app agrega el 549 si falta)
+#   correo_destino = "alguien@ejemplo.com"
+def numero_whatsapp(texto: str) -> str:
+    """Deja el número como lo pide wa.me: 549 + característica + número. Agrega el 549 si falta."""
+    n = "".join(c for c in str(texto) if c.isdigit())
+    if n.startswith("54"):
+        n = n[2:]
+    n = n.removeprefix("9").removeprefix("0")
+    return "549" + n
+
+
+WHATSAPP_DESTINO = numero_whatsapp(secretos().get("whatsapp_destino", "") or "3854750195")
+CORREO_DESTINO = str(secretos().get("correo_destino", "") or "esquinamitre@fesquina.com.ar").strip()
+URL_WHATSAPP = f"https://wa.me/{WHATSAPP_DESTINO}?text=" + quote("Te comparto un archivo para imprimir")
 LOGO_WHATSAPP = (
     '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path fill="#25D366" d="M16 3C9 3 3.3 8.7 3.3 15.7c0 2.2.6 4.4 1.7 6.3L3.2 28.8l7-1.8c1.8 1 3.8 1.5 5.8 1.5 7 0 12.7-5.7 12.7-12.7S23 3 16 3z"/>'
     '<path fill="#fff" d="M22.6 19.1c-.4-.2-2.1-1-2.4-1.1-.3-.1-.6-.2-.8.2-.2.4-.9 1.1-1.1 1.3-.2.2-.4.3-.8.1-.4-.2-1.6-.6-3-1.9-1.1-1-1.9-2.2-2.1-2.6-.2-.4 0-.6.2-.8l.6-.7c.2-.2.3-.4.4-.6.1-.3.1-.5 0-.7l-1.1-2.6c-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.6.1-1 .5-.3.4-1.3 1.3-1.3 3.1s1.3 3.6 1.5 3.9c.2.2 2.6 4 6.3 5.6 2.2.9 3 1 4.1.8.7-.1 2.1-.9 2.4-1.7.3-.8.3-1.6.2-1.7-.1-.2-.3-.3-.7-.5z"/></svg>'
@@ -1210,12 +1224,12 @@ st.markdown(
 )
 
 # Correo de la sucursal, con asunto y mensaje ya escritos.
-URL_CORREO = "mailto:esquinamitre@fesquina.com.ar?subject=" + quote("Archivos para imprimir") + "&body=" + quote("Te adjunto archivos para imprimir")
+URL_CORREO = f"mailto:{CORREO_DESTINO}?subject=" + quote("Archivos para imprimir") + "&body=" + quote("Te adjunto archivos para imprimir")
 st.markdown(
     f"""<div style="text-align:center; margin-top:.6rem;"><a href="{URL_CORREO}" style="display:inline-flex;
     align-items:center; gap:.5rem; padding:.35rem .95rem; border:1px solid #4285F4; border-radius:999px;
     text-decoration:none; color:#31333f; font-size:1.05rem; font-weight:500; background:#ffffff;">
-    <span style="font-size:1.3rem;">✉️</span><span>Correo <span style="color:#1A73E8; font-weight:700;">esquinamitre@fesquina.com.ar</span></span></a></div>""",
+    <span style="font-size:1.3rem;">✉️</span><span>Correo <span style="color:#1A73E8; font-weight:700;">{CORREO_DESTINO}</span></span></a></div>""",
     unsafe_allow_html=True,
 )
 

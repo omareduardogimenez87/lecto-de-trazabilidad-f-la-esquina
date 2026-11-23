@@ -140,3 +140,5 @@ Este repositorio es **privado**. No se suben fotos ni registros (lo impide el `.
 - **📤 Enviar para imprimir**: primero se saca la foto (o se elige de la galería, también PDF) y al tocar **Enviar** se abre el menú *Compartir* del celular con el texto "Te comparto un archivo para imprimir". Ahí se elige WhatsApp o Gmail y el contacto de la Mitre (la app no puede elegir el contacto sola). Funciona en Chrome de Android; si el navegador no deja compartir archivos, muestra un aviso.
 - **WhatsApp Sucursal Mitre** (+54 9 385 475-0195) y **Correo esquinamitre@fesquina.com.ar**: accesos directos con el mensaje ya escrito (no adjuntan archivos).
 - Fondo de la app: degradado lima, crema y lila.
+- **Probar con otro número o correo** (sin tocar el código): en Streamlit Cloud → Manage app → ⋮ → Settings → Secrets, agregar
+  `whatsapp_destino = "3856210820"` y/o `correo_destino = "alguien@ejemplo.com"` y guardar (la app agrega el 549 si falta). Para volver a los de la Mitre, borrar esas líneas y guardar.
