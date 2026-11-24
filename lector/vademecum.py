@@ -103,3 +103,28 @@ def buscar(lista: list[Cobertura], medicamento: str, limite: int = 10) -> list[C
         return all(any(p.startswith(w) or (len(w) >= 5 and _parecido(w, p) >= 0.9) for p in palabras) for w in claves)
 
     return [c for c in lista if coincide(c)][:limite]
+
+
+def vocabulario(lista: list[Cobertura]) -> list[str]:
+    """Nombres comerciales y drogas, para sugerir cuando algo está mal escrito."""
+    palabras = set()
+    for c in lista:
+        nombre = c.producto.split()[0] if c.producto else ""
+        if len(nombre) >= 4:
+            palabras.add(nombre.upper())
+        for droga in re.split(r"[+,]", c.droga):
+            droga = droga.strip()
+            if len(droga) >= 4 and not droga.endswith("."):
+                palabras.add(droga.lower())
+    return sorted(palabras)
+
+
+def sugerencias(vocab: list[str], texto: str, n: int = 5) -> list[str]:
+    """"klinal" -> ["CLINAL"]. Compara sin tildes ni mayúsculas."""
+    from difflib import get_close_matches
+
+    normal = {normalizar(v): v for v in vocab}
+    buscado = normalizar(texto).strip()
+    if len(buscado) < 3 or buscado in normal:
+        return []
+    return [normal[m] for m in get_close_matches(buscado, list(normal), n=n, cutoff=0.7)]

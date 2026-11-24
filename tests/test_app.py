@@ -271,3 +271,25 @@ def test_cobertura_vale_muestra_solo_vale_salud_con_porcentaje():
     tabla = at.dataframe[0].value
     assert "CLINAL pda.x 25 g" in list(tabla["Producto"]) and list(tabla["Laboratorio"]) == ["Andrómaco"]
     assert not any("alfabeta" in b.proto.url for b in at.get("link_button"))
+
+
+def test_sugerencias_y_ficha_del_vademecum():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("klinal cobertura")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception
+    sug = [b for b in at.button if b.key and b.key.startswith("sugerencia") and b.label == "CLINAL"]
+    sug[0].click().run()
+    assert at.text_input(key="consulta_txt").value == "CLINAL cobertura"
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("clinal")
+    at.button(key="btn_buscar").click().run()
+    ficha = [m.value for m in at.markdown if "💊 **CLINAL" in m.value][0]
+    assert "Andrómaco" in ficha and "Droga" in ficha and "Vale Salud 20 %" in ficha and "Ver foto" in ficha
+
+
+def test_vocabulario_y_sugerencias():
+    from lector import vademecum
+    vocab = ["CLINAL", "OXAGESIC", "paracetamol"]
+    assert vademecum.sugerencias(vocab, "klinal") == ["CLINAL"]
+    assert vademecum.sugerencias(vocab, "paracetamol") == []

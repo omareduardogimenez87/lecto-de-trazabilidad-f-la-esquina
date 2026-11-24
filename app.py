@@ -1011,6 +1011,49 @@ def responder_codigo(codigo: str, base, lista, hoy) -> None:
     st.info(f"🔎 Código {codigo}: {ofertas.NO_CARGADO}")
 
 
+def todos_los_vademecum() -> list:
+    lista = []
+    for nombre, ruta in vademecum.fuentes().values():
+        lista += [(nombre, c) for c in vademecum_cargado(str(ruta), ruta.stat().st_mtime)]
+    return lista
+
+
+def sugerir(texto: str, sufijo: str = "", lugar: str = "general") -> None:
+    """"¿Quisiste decir…?" con nombres comerciales y drogas de los vademécums y marcas del catálogo."""
+    vocab = vademecum.vocabulario([c for _, c in todos_los_vademecum()])
+    opciones = []
+    for palabra in texto.split():
+        opciones += [o for o in vademecum.sugerencias(vocab, palabra) if o not in opciones]
+    if not opciones:
+        return
+    st.caption("¿Quisiste decir…?")
+    columnas = st.columns(min(len(opciones), 3))
+    for i, o in enumerate(opciones[:6]):
+        if columnas[i % len(columnas)].button(o, key=f"sugerencia_{lugar}_{i}_{o}"):
+            st.session_state["consulta_sugerida"] = o + sufijo
+            st.rerun()
+
+
+def fichas_de_vademecum(pregunta: str, maximo: int = 5) -> bool:
+    """Datos del producto que figuran en los vademécums (laboratorio, droga, presentación, cobertura).
+
+    No se muestra para qué sirve ni dosis: eso lo responde la farmacéutica (regla de la app).
+    """
+    por_producto: dict[str, list] = {}
+    for nombre, c in todos_los_vademecum():
+        if vademecum.buscar([c], pregunta):
+            por_producto.setdefault(c.producto, []).append((nombre, c))
+    for producto, filas in list(por_producto.items())[:maximo]:
+        c = filas[0][1]
+        coberturas = " · ".join(f"{n} {x.porcentaje}" for n, x in filas)
+        st.markdown(f"💊 **{producto}**  \n🏭 {c.laboratorio or '—'} · 🧪 Droga: {c.droga or '—'}"
+                    + (f" · Código {c.codigo}" if c.codigo else "") + f"  \n🩺 Cobertura: {coberturas}"
+                    + f" · [📷 Ver foto](https://www.google.com/search?tbm=isch&q={quote(producto + ' ' + c.laboratorio)})")
+    if len(por_producto) > maximo:
+        st.caption(f"…y {len(por_producto) - maximo} presentaciones más en el vademécum.")
+    return bool(por_producto)
+
+
 if consultas.ARCHIVO.exists():
     # Siempre a la vista (sin desplegable), así no se cierra ni se abre solo al buscar o escanear.
     with st.container(border=True, key="consultas"):
@@ -1036,6 +1079,8 @@ if consultas.ARCHIVO.exists():
         # Buscador: se escribe y se busca con Enter o con el botón 🔎. El 🎤 (si el navegador lo permite)
         # dicta la búsqueda por voz. Va en un formulario para que busque solo al confirmar.
         st.markdown(ESTILO_BUSCADOR, unsafe_allow_html=True)
+        if "consulta_sugerida" in st.session_state:  # tocó una sugerencia ("¿Quisiste decir…?")
+            st.session_state["consulta_txt"] = st.session_state.pop("consulta_sugerida")
         with st.container(key="buscador"):
             with st.form("form_buscar", border=False):
                 col_txt, col_btn = st.columns([6, 1])
@@ -1096,9 +1141,11 @@ if consultas.ARCHIVO.exists():
                     nombre, ruta = cargadas[clave]
                     for c in vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime), medicamento):
                         filas.append({"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
-                                      "Laboratorio": c.laboratorio})
+                                      "Laboratorio": c.laboratorio, "Droga": c.droga})
             if filas:
                 st.dataframe(filas, hide_index=True, use_container_width=True)
+            if not filas:
+                sugerir(medicamento, " cobertura" + "".join(f" {k}" for k in elegidas if len(elegidas) == 1), "cobertura")
             sin_dato = [cargadas[k][0] for k in elegidas if k in cargadas and not any(f["Obra social"] == cargadas[k][0] for f in filas)]
             if sin_dato:
                 st.caption(f"No figura en el vademécum de: {', '.join(sin_dato)}.")
@@ -1143,14 +1190,16 @@ if consultas.ARCHIVO.exists():
                     st.markdown(f"<small>Ayuda de la app</small>", unsafe_allow_html=True)
                     st.markdown(f"**{q}**  \n{resp}")
                     st.divider()
+                en_vademecum = fichas_de_vademecum(pregunta) if not cobertura else bool(filas)
                 del_catalogo = catalogo.buscar(productos, pregunta)
                 if del_catalogo:
                     mostrar_catalogo(del_catalogo, lista_ofertas)
-                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon or del_catalogo or de_ayuda):
+                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon or del_catalogo or de_ayuda or en_vademecum):
                     if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
                     elif len(pregunta.strip()) >= 2:
                         st.info(consultas.SIN_DATO)
+                        sugerir(pregunta)
         elif categoria == AYUDA_ETIQUETA:
             st.markdown(ayuda.AYUDA)
         elif categoria == CATALOGO_ETIQUETA:
