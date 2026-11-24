@@ -157,3 +157,7 @@ Escribir **"dni 12345678"** (u "osdop 12345678"): la app dice si figura en **OSD
 
 ### Contraseña para entrar
 Si en Secrets está `clave_app = "..."`, la app pide esa contraseña antes de mostrar nada (una vez por sesión del navegador). Para sacarla, se borra la línea. Para cambiarla, se cambia el texto. Después de cualquier cambio: Save y Reiniciar aplicación.
+
+### Médicos y convenio ISSPSE
+- **"matricula 2911"**, **"dr abalos"** o **"medico abalos"**: nombre y matrícula del médico (`consultas/Matriculas_Medicos.xlsx`), con ✅ si está en el convenio ISSPSE (descuento extra) o 🟡 si es probable.
+- **"isspse 12345678"** (o "dni ..."): confirma por DNI si está en el convenio. Del listado ISSPSE solo se guarda un código de cada DNI en `consultas/padron_isspse.json` (misma clave `padron_clave`), sin nombres.

@@ -13,3 +13,8 @@ def test_dni_de_la_pregunta():
     assert padron.dni_de_la_pregunta("dni 25.333.620") == "25333620"
     assert padron.dni_de_la_pregunta("osdop 25333620") == "25333620"
     assert padron.dni_de_la_pregunta("7793742001673") is None
+
+
+def test_isspse_por_dni():
+    assert padron.dni_de_la_pregunta("isspse 20868328") == "20868328"
+    assert "ISSPSE" in padron.leer().get("listas", {})
