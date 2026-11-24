@@ -86,3 +86,10 @@ def test_la_app_muestra_consultas():
     assert any("Alvetide" in m.value for m in at.markdown)
     at.text_input(key="consulta_txt").input("andromaco"); at.button(key="btn_buscar").click().run()  # las promos se siguen encontrando escribiendo
     assert any("Andrómaco" in m.value for m in at.markdown)
+
+
+def test_medicamento_de_cobertura():
+    from lector.consultas import medicamento_de_cobertura
+    assert medicamento_de_cobertura("ibuprofeno cobertura") == "ibuprofeno"
+    assert medicamento_de_cobertura("Tafirol 1g cobertura pami") == "Tafirol 1g"
+    assert medicamento_de_cobertura("ibuprofeno") is None
