@@ -245,10 +245,58 @@ def test_escaneo_apagado_por_defecto_y_se_prende_por_secrets():
     assert hay(prendido)
 
 
-def test_cobertura_muestra_links_de_pami_y_vale_salud():
+def test_cobertura_muestra_tabla_y_link_de_pami():
     at = AppTest.from_file(APP, default_timeout=60).run()
-    at.text_input(key="consulta_txt").input("aquatop cobertura")
+    at.text_input(key="consulta_txt").input("clinal cobertura")
     at.button(key="btn_buscar").click().run()
+    tabla = at.dataframe[0].value
+    assert list(tabla["Obra social"]) == ["Vale Salud"] and list(tabla["Cobertura"]) == ["20 %"]
     urls = [b.proto.url for b in at.get("link_button")]
-    assert "https://www.alfabeta.net/precio/aquatop.html" in urls
-    assert "https://valesalud.ar/vademecum.html" in urls
+    assert "https://www.alfabeta.net/precio/clinal.html" in urls
+
+
+def test_ofertas_muestra_promos_de_la_semana_y_sin_carteles_por_defecto():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    textos = " ".join(m.value for m in at.markdown) + " ".join(c.value for c in at.caption)
+    assert "No tengo ese dato cargado" not in " ".join(i.value for i in at.info)
+    assert "Lo marcado con" not in textos
+    at.pills(key="consulta_cat").set_value("🏷️ Ofertas").run()
+    assert any("Naranja X" in m.value for m in at.markdown)
+
+
+def test_cobertura_vale_muestra_solo_vale_salud_con_porcentaje():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("clinal cobertura vale")
+    at.button(key="btn_buscar").click().run()
+    tabla = at.dataframe[0].value
+    assert "CLINAL pda.x 25 g" in list(tabla["Producto"]) and list(tabla["Laboratorio"]) == ["Andrómaco"]
+    assert not any("alfabeta" in b.proto.url for b in at.get("link_button"))
+
+
+def test_sugerencias_y_ficha_del_vademecum():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("klinal cobertura")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception
+    sug = [b for b in at.button if b.key and b.key.startswith("sugerencia") and b.label == "CLINAL"]
+    sug[0].click().run()
+    assert at.text_input(key="consulta_txt").value == "CLINAL cobertura"
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("clinal")
+    at.button(key="btn_buscar").click().run()
+    ficha = [m.value for m in at.markdown if "💊 **CLINAL" in m.value][0]
+    assert "Andrómaco" in ficha and "Droga" in ficha and "Vale Salud 20 %" in ficha and "Ver foto" in ficha
+
+
+def test_vocabulario_y_sugerencias():
+    from lector import vademecum
+    vocab = ["CLINAL", "OXAGESIC", "paracetamol"]
+    assert vademecum.sugerencias(vocab, "klinal") == ["CLINAL"]
+    assert vademecum.sugerencias(vocab, "paracetamol") == []
+
+
+def test_dni_sin_padron_cargado_no_rompe():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("dni 25333620")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception

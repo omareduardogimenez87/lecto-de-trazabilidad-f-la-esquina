@@ -79,7 +79,7 @@ def test_la_app_muestra_consultas():
     at.text_input(key="consulta_txt").input(""); at.button(key="btn_buscar").click().run()
     cat = next(p for p in at.pills if p.key == "consulta_cat")
     nombres = {o.split(" ", 1)[-1] if not o[0].isalpha() else o for o in cat.options}
-    assert nombres == {"Ofertas OTC", "Cajones"}
+    assert nombres == {"Ofertas", "Cajones"}
     cat.set_value("🗄️ Cajones").run()
     assert not at.exception and any("CAJON 2-A" in m.value for m in at.markdown)
     at.text_input(key="consulta_txt").input("alvetide"); at.button(key="btn_buscar").click().run()  # el PICC se sigue encontrando escribiendo
@@ -90,6 +90,7 @@ def test_la_app_muestra_consultas():
 
 def test_medicamento_de_cobertura():
     from lector.consultas import medicamento_de_cobertura
-    assert medicamento_de_cobertura("ibuprofeno cobertura") == "ibuprofeno"
-    assert medicamento_de_cobertura("Tafirol 1g cobertura pami") == "Tafirol 1g"
+    assert medicamento_de_cobertura("ibuprofeno cobertura") == ("ibuprofeno", ["vale", "pami"])
+    assert medicamento_de_cobertura("Tafirol 1g cobertura pami") == ("Tafirol 1g", ["pami"])
+    assert medicamento_de_cobertura("Clinal cobertura vale salud") == ("Clinal", ["vale"])
     assert medicamento_de_cobertura("ibuprofeno") is None

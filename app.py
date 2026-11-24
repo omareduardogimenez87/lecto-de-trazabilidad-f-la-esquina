@@ -25,7 +25,17 @@ from urllib.parse import quote
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import ayuda, cajones, catalogo, consultas, ofertas, precios, registro
+from lector import ayuda, cajones, catalogo, consultas, ofertas, padron, precios, registro, vademecum
+
+# Streamlit Cloud a veces deja cargada la versión vieja de estos módulos después de un merge
+# (y aparece un AttributeError hasta hacer "Reboot app"). Si el archivo cambió, se vuelve a cargar.
+import importlib
+
+for _modulo in (consultas, ofertas, precios, cajones, catalogo, ayuda, vademecum, padron):
+    _cambio = Path(_modulo.__file__).stat().st_mtime
+    if getattr(_modulo, "_version_cargada", None) != _cambio:
+        importlib.reload(_modulo)
+        _modulo._version_cargada = _cambio
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, leer_codigos_de_producto, ocr_disponible
@@ -879,6 +889,14 @@ def ofertas_otc(_modificado: float, _modificado_precios: float = 0):
 
 
 @st.cache_data(show_spinner=False)
+def vademecum_cargado(ruta: str, _modificado: float):
+    try:
+        return vademecum.leer(Path(ruta))
+    except Exception:
+        return []
+
+
+@st.cache_data(show_spinner=False)
 def mapa_de_cajones(_modificado: float):
     return cajones.leer() if cajones.ARCHIVO.exists() else []
 
@@ -904,7 +922,7 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
     st.divider()
 
 
-OFERTAS_ETIQUETA = "💊 Ofertas OTC"
+OFERTAS_ETIQUETA = "🏷️ Ofertas"
 AYUDA_ETIQUETA = "❓ Ayuda de la app"
 SECCIONES_CON_BOTON = ()  # ninguna sección del .md tiene botón (pedido de Edu); se encuentran escribiendo
 ESTILO_BUSCADOR = """
@@ -993,6 +1011,49 @@ def responder_codigo(codigo: str, base, lista, hoy) -> None:
     st.info(f"🔎 Código {codigo}: {ofertas.NO_CARGADO}")
 
 
+def todos_los_vademecum() -> list:
+    lista = []
+    for nombre, ruta in vademecum.fuentes().values():
+        lista += [(nombre, c) for c in vademecum_cargado(str(ruta), ruta.stat().st_mtime)]
+    return lista
+
+
+def sugerir(texto: str, sufijo: str = "", lugar: str = "general") -> None:
+    """"¿Quisiste decir…?" con nombres comerciales y drogas de los vademécums y marcas del catálogo."""
+    vocab = vademecum.vocabulario([c for _, c in todos_los_vademecum()])
+    opciones = []
+    for palabra in texto.split():
+        opciones += [o for o in vademecum.sugerencias(vocab, palabra) if o not in opciones]
+    if not opciones:
+        return
+    st.caption("¿Quisiste decir…?")
+    columnas = st.columns(min(len(opciones), 3))
+    for i, o in enumerate(opciones[:6]):
+        if columnas[i % len(columnas)].button(o, key=f"sugerencia_{lugar}_{i}_{o}"):
+            st.session_state["consulta_sugerida"] = o + sufijo
+            st.rerun()
+
+
+def fichas_de_vademecum(pregunta: str, maximo: int = 5) -> bool:
+    """Datos del producto que figuran en los vademécums (laboratorio, droga, presentación, cobertura).
+
+    No se muestra para qué sirve ni dosis: eso lo responde la farmacéutica (regla de la app).
+    """
+    por_producto: dict[str, list] = {}
+    for nombre, c in todos_los_vademecum():
+        if vademecum.buscar([c], pregunta):
+            por_producto.setdefault(c.producto, []).append((nombre, c))
+    for producto, filas in list(por_producto.items())[:maximo]:
+        c = filas[0][1]
+        coberturas = " · ".join(f"{n} {x.porcentaje}" for n, x in filas)
+        st.markdown(f"💊 **{producto}**  \n🏭 {c.laboratorio or '—'} · 🧪 Droga: {c.droga or '—'}"
+                    + (f" · Código {c.codigo}" if c.codigo else "") + f"  \n🩺 Cobertura: {coberturas}"
+                    + f" · [📷 Ver foto](https://www.google.com/search?tbm=isch&q={quote(producto + ' ' + c.laboratorio)})")
+    if len(por_producto) > maximo:
+        st.caption(f"…y {len(por_producto) - maximo} presentaciones más en el vademécum.")
+    return bool(por_producto)
+
+
 if consultas.ARCHIVO.exists():
     # Siempre a la vista (sin desplegable), así no se cierra ni se abre solo al buscar o escanear.
     with st.container(border=True, key="consultas"):
@@ -1018,6 +1079,8 @@ if consultas.ARCHIVO.exists():
         # Buscador: se escribe y se busca con Enter o con el botón 🔎. El 🎤 (si el navegador lo permite)
         # dicta la búsqueda por voz. Va en un formulario para que busque solo al confirmar.
         st.markdown(ESTILO_BUSCADOR, unsafe_allow_html=True)
+        if "consulta_sugerida" in st.session_state:  # tocó una sugerencia ("¿Quisiste decir…?")
+            st.session_state["consulta_txt"] = st.session_state.pop("consulta_sugerida")
         with st.container(key="buscador"):
             with st.form("form_buscar", border=False):
                 col_txt, col_btn = st.columns([6, 1])
@@ -1063,16 +1126,50 @@ if consultas.ARCHIVO.exists():
             etiquetas.append(CAJONES_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
-        medicamento = consultas.medicamento_de_cobertura(pregunta) if pregunta.strip() else None
-        if medicamento:
-            # "ibuprofeno cobertura": links a los vademécum de PAMI (Alfabeta) y Vale Salud.
+        dni = padron.dni_de_la_pregunta(pregunta) if pregunta.strip() else None
+        if dni:
+            # "dni 25333620": solo dice en qué lista de OSDOP figura (sin nombre ni enfermedad).
+            datos_padron, clave = padron.leer(), str(secretos().get("padron_clave", ""))
+            if not datos_padron or not clave:
+                st.info("🪪 El padrón de OSDOP todavía no está cargado.")
+            else:
+                listas = padron.consultar(datos_padron, dni, clave)
+                mes = datos_padron.get("mes", "")
+                if listas:
+                    nombres = [("Cobertura especial (crónico)" if l == "Cobertura especial" else l) for l in listas]
+                    st.success(f"🪪 DNI {dni}: figura en **{' · '.join(nombres)}**" + (f" (padrón {mes})" if mes else ""))
+                else:
+                    st.warning(f"🪪 DNI {dni}: **no figura** en el padrón de OSDOP" + (f" ({mes})" if mes else "") + ".")
+            pregunta = ""  # no buscar el número en el resto de la base
+        cargadas = vademecum.fuentes()  # {"vale": ("Vale Salud", ruta)}
+        cobertura = (consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas})
+                     if pregunta.strip() else None)
+        if cobertura:
+            # "clinal cobertura": tabla obra social -> % con todos los vademécums cargados.
+            # "clinal cobertura vale": solo Vale Salud.
+            medicamento, elegidas = cobertura
             slug = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(medicamento)))
             st.markdown(f"**🩺 Cobertura de {medicamento}**")
-            c1, c2 = st.columns(2)
-            c1.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
-            c2.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
-            st.caption(f"En Vale Salud buscá **{medicamento}** dentro de la página. Si PAMI no encuentra el producto, "
-                       "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+            filas = []
+            for clave in elegidas:
+                if clave in cargadas:
+                    nombre, ruta = cargadas[clave]
+                    for c in vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime), medicamento):
+                        filas.append({"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
+                                      "Laboratorio": c.laboratorio, "Droga": c.droga})
+            if filas:
+                st.dataframe(filas, hide_index=True, use_container_width=True)
+            if not filas:
+                sugerir(medicamento, " cobertura" + "".join(f" {k}" for k in elegidas if len(elegidas) == 1), "cobertura")
+            sin_dato = [cargadas[k][0] for k in elegidas if k in cargadas and not any(f["Obra social"] == cargadas[k][0] for f in filas)]
+            if sin_dato:
+                st.caption(f"No figura en el vademécum de: {', '.join(sin_dato)}.")
+            if "pami" in elegidas and "pami" not in cargadas:
+                st.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
+                st.caption("PAMI no tiene archivo cargado: se consulta en Alfabeta. Si no encuentra el producto, "
+                           "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+            if "vale" in elegidas and "vale" not in cargadas:
+                st.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
             pregunta = medicamento  # además, lo que haya del producto (ofertas, cajón, catálogo)
         if pregunta.strip():
             r = consultas.buscar(base, pregunta, hoy)
@@ -1095,7 +1192,7 @@ if consultas.ARCHIVO.exists():
                 if r["sin_horario"]:
                     st.info(f"🕒 {consultas.SIN_HORARIO}")
                 if encontradas:
-                    st.markdown("<small>Ofertas OTC</small>", unsafe_allow_html=True)
+                    st.markdown("<small>Ofertas</small>", unsafe_allow_html=True)
                     if en_cajon:
                         st.caption(f"🏷️ Hay ofertas de este producto: {cajones.VERIFICAR}.")
                     mostrar_ofertas(encontradas, hoy)
@@ -1108,14 +1205,16 @@ if consultas.ARCHIVO.exists():
                     st.markdown(f"<small>Ayuda de la app</small>", unsafe_allow_html=True)
                     st.markdown(f"**{q}**  \n{resp}")
                     st.divider()
+                en_vademecum = fichas_de_vademecum(pregunta) if not cobertura else bool(filas)
                 del_catalogo = catalogo.buscar(productos, pregunta)
                 if del_catalogo:
                     mostrar_catalogo(del_catalogo, lista_ofertas)
-                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon or del_catalogo or de_ayuda):
+                if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon or del_catalogo or de_ayuda or en_vademecum):
                     if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
-                    else:
+                    elif len(pregunta.strip()) >= 2:
                         st.info(consultas.SIN_DATO)
+                        sugerir(pregunta)
         elif categoria == AYUDA_ETIQUETA:
             st.markdown(ayuda.AYUDA)
         elif categoria == CATALOGO_ETIQUETA:
@@ -1127,9 +1226,21 @@ if consultas.ARCHIVO.exists():
                     it.nombre + (" ⚠️" if it.a_confirmar else "") for it in contenido))
             st.caption("⚠️ = nombre a confirmar (revisar la caja).")
         elif categoria == OFERTAS_ETIQUETA:
+            # Todas las ofertas juntas: promos de la semana (tarjetas, bancos, laboratorios) y productos.
+            # Una tarjeta por promo (se lee mejor en el celular que la tabla). Las vencidas no se muestran.
+            promos = [d for d in base.datos if d.seccion == "7" and d.titulo == "Promociones vigentes"
+                      and not d.texto.startswith("Fecha de referencia")]
+            if promos:
+                st.markdown("**🎉 Promociones de la semana** (tarjetas, bancos y laboratorios)")
+                for d in promos:
+                    if consultas._promo_vencida(d, hoy):
+                        continue
+                    with st.container(border=True):
+                        st.markdown(consultas.con_aviso(d, hoy))
+                st.markdown("**💊 Productos en oferta**")
             vigentes = [o for o in lista_ofertas if o.vigencia(hoy) != "vencida"]
             st.markdown(f"**{len(lista_ofertas)} productos en oferta** · sin precio cargado: "
-                        f"{sum(1 for o in lista_ofertas if o.precio is None)}")
+                        f"{sum(1 for o in lista_ofertas if o.paga_el_cliente() is None)}")
             if len(vigentes) < len(lista_ofertas):
                 st.warning(f"❌ {len(lista_ofertas) - len(vigentes)} ofertas ya están vencidas.")
             st.dataframe(
@@ -1137,7 +1248,7 @@ if consultas.ARCHIVO.exists():
                     "Producto": f"{o.producto} {o.presentacion}".strip(),
                     "Oferta": o.texto_oferta(),
                     "Hasta": (o.hasta.strftime("%d/%m/%Y") if o.hasta else "—") + ("" if o.vigencia(hoy) == "vigente" else f" ({o.vigencia(hoy)})"),
-                    "Paga el cliente": ofertas.pesos(o.paga_el_cliente()) if o.precio is not None else ofertas.SIN_PRECIO,
+                    "Paga el cliente": ofertas.pesos(o.paga_el_cliente()) if o.paga_el_cliente() is not None else ofertas.SIN_PRECIO,
                     "Código": o.codigo,
                 } for o in lista_ofertas],
                 hide_index=True, use_container_width=True,
@@ -1151,8 +1262,6 @@ if consultas.ARCHIVO.exists():
                 # Fuera del período cargado solo se muestran las reglas fijas (2.2).
                 contenido = contenido[contenido.find("### 2.2"):] if "### 2.2" in contenido else ""
             st.markdown(contenido)
-        st.caption(f"Lo marcado con ⚠️ está {consultas.A_CONFIRMAR}. "
-                   "Las consultas de salud (dosis, para qué sirve) las responde la farmacéutica.")
 
 # Soporte: abre el sistema de tickets del Área TI en otra pestaña, con el logo de I.T. AREA.
 LOGO_TI = IMAGENES / "logo_ti.png"

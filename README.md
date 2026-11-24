@@ -49,7 +49,7 @@ Abajo de las fotos hay una sección **💬 Consultas rápidas** (sin IA, no usa 
 
 **Buscar**: se busca con **Enter** o con el botón **🔎**, y con **🎤** se dicta la consulta por voz (usa el reconocimiento de voz del navegador: en Chrome de Android funciona; si el 🎤 no aparece, se puede usar el micrófono del teclado del celular).
 
-**▮▮ Escanear código o producto**: en Consultas, debajo del buscador (**Asistente La Esquina**, sin IA), el botón abre la cámara y se saca una foto del código de barras (o del DataMatrix) y la app muestra la oferta del producto, hasta cuándo vale y cuánto paga el cliente. Los datos salen de [`consultas/Ofertas_OTC_completo.xlsx`](consultas/Ofertas_OTC_completo.xlsx). Si el producto no tiene "Precio regular" dice "sin precio cargado"; si el código no está, "Producto no cargado". La categoría **💊 Ofertas OTC** muestra la lista completa. Para cargar precios o una oferta nueva, se edita el Excel y se sube igual que el `.md` (mismo nombre, carpeta `consultas`).
+**▮▮ Escanear código o producto**: en Consultas, debajo del buscador (**Asistente La Esquina**, sin IA), el botón abre la cámara y se saca una foto del código de barras (o del DataMatrix) y la app muestra la oferta del producto, hasta cuándo vale y cuánto paga el cliente. Los datos salen de [`consultas/Ofertas_OTC_completo.xlsx`](consultas/Ofertas_OTC_completo.xlsx). Si el producto no tiene "Precio regular" dice "sin precio cargado"; si el código no está, "Producto no cargado". La categoría **🏷️ Ofertas** muestra las promociones de la semana (tarjetas, bancos, laboratorios) y la lista completa de productos en oferta. Para cargar precios o una oferta nueva, se edita el Excel y se sube igual que el `.md` (mismo nombre, carpeta `consultas`).
 
 > **Por ahora está apagado** (hasta tener los códigos cargados). Para prenderlo: Streamlit Cloud → Manage app → ⋮ → Settings → Secrets, agregar `escaneo_activo = true`, Save y Reboot app. Para apagarlo de nuevo, borrar esa línea.
 
@@ -63,7 +63,7 @@ Abajo de las fotos hay una sección **💬 Consultas rápidas** (sin IA, no usa 
 Al elegir tu nombre aparece, chiquito debajo de los botones de foto, **📝 Nota u observación** para dejar algo que haya que cambiar o agregar a la app. Cada uno ve las notas que escribió hasta que cierra la app. **Omar** (`"ve_notas": true` en `usuarios.json`) ve todas, con quién y cuándo, y las borra con **✅ Listo, borrar** a medida que aplica los cambios. Se guardan en la pestaña **Notas** de la planilla (en la PC, `registros/notas.csv`). Opcional: si se agrega `clave_notas = "..."` en Secrets, la app pide esa clave para ver las notas.
 
 ### ❓ Ayuda
-La ayuda está dentro del **Asistente La Esquina** (siempre visible, debajo de las fotos) (sin IA, no usa internet): se escribe la duda en el mismo buscador ("la foto no se lee", "archivar", "descargar excel") Los únicos botones de categoría son Ofertas OTC y Cajones; el resto de los datos (programas, PICC, obras sociales, horarios, etc.) se encuentra escribiendo.
+La ayuda está dentro del **Asistente La Esquina** (siempre visible, debajo de las fotos) (sin IA, no usa internet): se escribe la duda en el mismo buscador ("la foto no se lee", "archivar", "descargar excel") Los únicos botones de categoría son Ofertas y Cajones; el resto de los datos (programas, PICC, obras sociales, horarios, etc.) se encuentra escribiendo.
 
 ### Reportar incidencia a Equipo TI
 Al final de la app hay un botón con el logo de I.T. AREA, **Reportar incidencia a Equipo TI** (chico y discreto, con borde violeta y verde como su página), que abre el sistema de tickets (<https://area-t-i-tickets.vercel.app/>) en otra pestaña. Debajo, **Página oficial Farmacia La Esquina** abre <https://farmacialaesquina.com.ar/> en otra pestaña.
@@ -147,3 +147,10 @@ Este repositorio es **privado**. No se suben fotos ni registros (lo impide el `.
 
 ### Lista de precios de la quincena (Word de comercial)
 El asistente también busca en [`consultas/Precios_Quincena.docx`](consultas/Precios_Quincena.docx): el Word con las tablas por rubro (producto, código, precio regular, oferta y fechas). Aparece junto con las Ofertas OTC. Cuando llegue la lista nueva, se sube el Word con **el mismo nombre** `Precios_Quincena.docx` a la carpeta `consultas` (Add file → Upload files), igual que el Excel de ofertas.
+
+### Cobertura de medicamentos (Vale Salud y PAMI)
+En el buscador: **medicamento + "cobertura"** (ej.: "clinal cobertura"). Con "vale" o "vale salud" muestra solo Vale Salud; con "pami" solo PAMI (Alfabeta); sin nombrarla, las dos.
+La app arma una tabla **obra social → %** con cada vademécum cargado en `consultas/` con el nombre `Vademecum_<Obra_social>.csv` (o `.xlsx`), por ejemplo `Vademecum_Vale_Salud.csv` (el que se baja con el ícono ⬇ de valesalud.ar). Para sumar otra obra social, se sube su archivo con ese formato de nombre; para actualizar, el archivo nuevo con el mismo nombre. PAMI se consulta por link a Alfabeta hasta tener un archivo.
+
+### Padrón OSDOP por DNI
+Escribir **"dni 12345678"** (u "osdop 12345678"): la app dice si figura en **OSDOP**, **OSDOP Monotributo** o **Cobertura especial (crónico)**, o que no figura. En el repo solo hay `consultas/padron_osdop.json` con un código de cada DNI (HMAC con la clave `padron_clave` de Secrets): sin nombres, domicilios, fechas ni enfermedades. Los Excel del padrón **no se suben nunca** al repo. Cada mes se arma de nuevo con `herramientas/armar_padron.py` (o pidiéndoselo a Claude con los 3 Excel).

@@ -32,3 +32,8 @@ def test_la_app_muestra_el_catalogo():
     next(t for t in at.text_input if t.key == "consulta_txt").input("head shoulders"); at.button(key="btn_buscar").click().run()
     assert not at.exception
     assert any("Head & Shoulders" in m.value for m in at.markdown)
+
+
+def test_clinal_no_trae_rexona_clinical():
+    from lector import catalogo
+    assert not [p for p in catalogo.buscar(catalogo.leer(), "clinal") if "REXONA" in p.nombre.upper()]

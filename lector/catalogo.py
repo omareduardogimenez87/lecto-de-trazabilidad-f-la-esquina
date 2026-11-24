@@ -12,7 +12,14 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from .cajones import _parecido
+from .cajones import _parecido as _parecido_cajones
+
+
+def _parecido(buscada: str, palabra: str) -> float:
+    """Como en cajones, pero una palabra corta del catálogo ("clin") no cuenta como la buscada ("clinal")."""
+    if len(palabra) < len(buscada) and buscada.startswith(palabra):
+        return 0.0
+    return _parecido_cajones(buscada, palabra)
 from .consultas import normalizar, palabras
 
 ARCHIVO = Path(__file__).resolve().parent.parent / "consultas" / "Ventas_Producto_Categoria_Marcas.xlsx"
@@ -75,7 +82,7 @@ def buscar(productos: list[Producto], pregunta: str) -> list[Producto]:
     # Sin coincidencia exacta: probar con errores de tipeo ("garnir", "shampo").
     return [
         p for p in productos
-        if all(max((_parecido(w, b) for b in p.buscable()), default=0) >= 0.85 for w in claves if len(w) >= 4)
+        if all(max((_parecido(w, b) for b in p.buscable()), default=0) >= 0.88 for w in claves if len(w) >= 4)
         and any(len(w) >= 4 for w in claves)
     ]
 

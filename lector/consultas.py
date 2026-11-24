@@ -255,16 +255,36 @@ def _promo_vencida(dato: Dato, hoy: date) -> bool:
     return bool(hasta and hasta < hoy)
 
 
-PALABRAS_COBERTURA = ("cobertura", "coberturas", "cubre", "cubren")
+PALABRAS_COBERTURA = ("cobertura", "coberturas", "cubre", "cubren", "cobertu", "cober")
+# Palabras que eligen una sola fuente de cobertura: "clinal cobertura vale" -> solo Vale Salud.
+FUENTES_COBERTURA = {
+    "vale": ("vale", "valesalud", "vale+"),
+    "pami": ("pami", "alfabeta"),
+}
+_DESCARTAR = ("de", "del", "la", "el", "en", "salud", "para")
 
 
-def medicamento_de_cobertura(pregunta: str) -> str | None:
-    """"ibuprofeno cobertura" -> "ibuprofeno". None si no pregunta por cobertura."""
+def medicamento_de_cobertura(pregunta: str, fuentes_q: dict | None = None) -> tuple[str, list[str]] | None:
+    """"clinal cobertura vale salud" -> ("clinal", ["vale"]). Sin fuente nombrada -> todas.
+
+    None si no pregunta por cobertura.
+    """
+    todas = {**FUENTES_COBERTURA, **(fuentes_q or {})}
     palabras_q = pregunta.split()
-    if not any(normalizar(w) in PALABRAS_COBERTURA for w in palabras_q):
+    if not any(normalizar(w).startswith(PALABRAS_COBERTURA) for w in palabras_q):
         return None
-    resto = [w for w in palabras_q if normalizar(w) not in PALABRAS_COBERTURA + ("de", "del", "la", "el", "pami", "vale", "salud")]
-    return " ".join(resto).strip() or None
+    fuentes, resto = [], []
+    for w in palabras_q:
+        n = normalizar(w)
+        fuente = next((f for f, claves in todas.items() if n in claves), None)
+        if fuente:
+            fuentes.append(fuente)
+        elif not n.startswith(PALABRAS_COBERTURA) and n not in _DESCARTAR:
+            resto.append(w)
+    medicamento = " ".join(resto).strip()
+    if not medicamento:
+        return None
+    return medicamento, (sorted(set(fuentes), key=list(todas).index) or list(todas))
 
 
 def es_consulta_de_salud(pregunta: str) -> bool:
