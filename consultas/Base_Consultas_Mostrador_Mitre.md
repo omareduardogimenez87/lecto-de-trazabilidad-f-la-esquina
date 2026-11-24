@@ -354,6 +354,7 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 | Promo | Descuento | Código | Desde | Hasta | Dónde | Estado |
 |---|---|---|---|---|---|---|
 | Andrómaco / Avanter "Promoción especial acuerdo" | 40 % | 5050100204385674 | 13/11/2026 | **30/11/2026** | — | ✅ |
+| Naranja X con **NX Crédito**: 25 % off + 6 cuotas cero interés · tope de reintegro $30.000 · el cliente ve el descuento reflejado en el recibo/resumen | 25 % | — | 24/11/2026 | **29/11/2026** | Todas (pago con NX Crédito) | ✅ |
 | Kit Autobronceante Dermaglós (sérum facial + crema corporal 150 g, neceser de regalo) | 40 % | ⚠️ ¿el del acuerdo Andrómaco? | — | Hasta agotar stock | **Solo Avellaneda y Mitre** | ✅ (código ⚠️) |
 | Egestan Fólico | 20 % | +35270 | 30/10/2026 | ⚠️ sin fecha informada | Cargada en sistema | ✅ |
 | Femexin | 20 % | +35337 | 30/10/2026 | ⚠️ sin fecha informada | Cargada en sistema | ✅ |
@@ -416,8 +417,8 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 | bramedvalidacion.com | Bramed (respaldo) ✅ |
 | FTCheq | Programas de laboratorio y PICC ✅ |
 | [valesalud.ar/vademecum.html](https://valesalud.ar/vademecum.html) | Vale Salud: vademécum, para consultar qué medicamentos tienen descuento ✅ |
-| [alfabeta.net](https://www.alfabeta.net/) | Vademécum PAMI (precios de medicamentos): buscar el producto, por ejemplo [alfabeta.net/precio/aquatop.html](https://www.alfabeta.net/precio/aquatop.html) ✅ |
-| [colmedse.com.ar/consulta-receta](https://colmedse.com.ar/consulta-receta) | Colegio Médico de Santiago del Estero: consultar y descargar recetas ✅ |
+| **PAMI** ([Alfabeta](https://www.alfabeta.net/)) | PAMI: vademécum y precios de medicamentos; buscar el producto, por ejemplo [alfabeta.net/precio/aquatop.html](https://www.alfabeta.net/precio/aquatop.html) ✅ |
+| **Colegio de Médicos** ([Colmedse](https://colmedse.com.ar/consulta-receta)) | Colegio de Médicos de Santiago del Estero (Colegio Médico): los médicos cargan la receta y la farmacia la descarga para imprimir (imprimir receta, descargar receta) ✅ |
 | web.handlerfacaf.com.ar · apops.org.ar (descuento empleados ANSES) | ⚠️ de notas manuscritas |
 
 ### 8.3 Droguerías ✅

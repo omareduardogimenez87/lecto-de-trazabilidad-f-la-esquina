@@ -243,3 +243,12 @@ def test_escaneo_apagado_por_defecto_y_se_prende_por_secrets():
         return any("foto_codigo" in str(getattr(u, "proto", u)) for u in at.get("file_uploader"))
     assert not hay(apagado)
     assert hay(prendido)
+
+
+def test_cobertura_muestra_links_de_pami_y_vale_salud():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("aquatop cobertura")
+    at.button(key="btn_buscar").click().run()
+    urls = [b.proto.url for b in at.get("link_button")]
+    assert "https://www.alfabeta.net/precio/aquatop.html" in urls
+    assert "https://valesalud.ar/vademecum.html" in urls

@@ -1063,6 +1063,17 @@ if consultas.ARCHIVO.exists():
             etiquetas.append(CAJONES_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
+        medicamento = consultas.medicamento_de_cobertura(pregunta) if pregunta.strip() else None
+        if medicamento:
+            # "ibuprofeno cobertura": links a los vademécum de PAMI (Alfabeta) y Vale Salud.
+            slug = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(medicamento)))
+            st.markdown(f"**🩺 Cobertura de {medicamento}**")
+            c1, c2 = st.columns(2)
+            c1.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
+            c2.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
+            st.caption(f"En Vale Salud buscá **{medicamento}** dentro de la página. Si PAMI no encuentra el producto, "
+                       "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+            pregunta = medicamento  # además, lo que haya del producto (ofertas, cajón, catálogo)
         if pregunta.strip():
             r = consultas.buscar(base, pregunta, hoy)
             if r["salud"]:

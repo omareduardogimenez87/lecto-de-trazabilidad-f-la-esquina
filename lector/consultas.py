@@ -255,6 +255,18 @@ def _promo_vencida(dato: Dato, hoy: date) -> bool:
     return bool(hasta and hasta < hoy)
 
 
+PALABRAS_COBERTURA = ("cobertura", "coberturas", "cubre", "cubren")
+
+
+def medicamento_de_cobertura(pregunta: str) -> str | None:
+    """"ibuprofeno cobertura" -> "ibuprofeno". None si no pregunta por cobertura."""
+    palabras_q = pregunta.split()
+    if not any(normalizar(w) in PALABRAS_COBERTURA for w in palabras_q):
+        return None
+    resto = [w for w in palabras_q if normalizar(w) not in PALABRAS_COBERTURA + ("de", "del", "la", "el", "pami", "vale", "salud")]
+    return " ".join(resto).strip() or None
+
+
 def es_consulta_de_salud(pregunta: str) -> bool:
     p = normalizar(pregunta)
     return any(palabra in p for palabra in PALABRAS_SALUD)
