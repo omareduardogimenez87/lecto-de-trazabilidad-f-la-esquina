@@ -417,8 +417,8 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 | bramedvalidacion.com | Bramed (respaldo) ✅ |
 | FTCheq | Programas de laboratorio y PICC ✅ |
 | [valesalud.ar/vademecum.html](https://valesalud.ar/vademecum.html) | Vale Salud: vademécum, para consultar qué medicamentos tienen descuento ✅ |
-| [alfabeta.net](https://www.alfabeta.net/) | Vademécum PAMI (precios de medicamentos): buscar el producto, por ejemplo [alfabeta.net/precio/aquatop.html](https://www.alfabeta.net/precio/aquatop.html) ✅ |
-| [colmedse.com.ar/consulta-receta](https://colmedse.com.ar/consulta-receta) | Colegio Médico de Santiago del Estero: consultar y descargar recetas ✅ |
+| **PAMI** ([Alfabeta](https://www.alfabeta.net/)) | PAMI: vademécum y precios de medicamentos; buscar el producto, por ejemplo [alfabeta.net/precio/aquatop.html](https://www.alfabeta.net/precio/aquatop.html) ✅ |
+| **Colegio de Médicos** ([Colmedse](https://colmedse.com.ar/consulta-receta)) | Colegio de Médicos de Santiago del Estero (Colegio Médico): consultar y descargar la receta o recetas ✅ |
 | web.handlerfacaf.com.ar · apops.org.ar (descuento empleados ANSES) | ⚠️ de notas manuscritas |
 
 ### 8.3 Droguerías ✅
