@@ -1081,28 +1081,33 @@ if consultas.ARCHIVO.exists():
             etiquetas.append(CAJONES_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
-        cobertura = consultas.medicamento_de_cobertura(pregunta) if pregunta.strip() else None
+        cargadas = vademecum.fuentes()  # {"vale": ("Vale Salud", ruta)}
+        cobertura = (consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas})
+                     if pregunta.strip() else None)
         if cobertura:
-            # "clinal cobertura vale": solo Vale Salud. Sin nombrar la fuente: todas.
-            medicamento, fuentes = cobertura
+            # "clinal cobertura": tabla obra social -> % con todos los vademécums cargados.
+            # "clinal cobertura vale": solo Vale Salud.
+            medicamento, elegidas = cobertura
             slug = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(medicamento)))
             st.markdown(f"**🩺 Cobertura de {medicamento}**")
-            if "vale" in fuentes:
-                ruta = vademecum.archivo("vale")
-                encontrados = vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime), medicamento) if ruta else []
-                if encontrados:
-                    st.markdown("**Vale Salud**")
-                    for c in encontrados:
-                        detalle = " · ".join(x for x in (c.laboratorio, c.droga) if x)
-                        st.markdown(f"- **{c.producto}**" + (f" · {detalle}" if detalle else "") + f" · 🟢 **{c.porcentaje}**")
-                elif ruta:
-                    st.info(f"Vale Salud: {medicamento} no figura en el vademécum cargado.")
-                st.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
-                if not ruta:
-                    st.caption(f"En Vale Salud buscá **{medicamento}** dentro de la página.")
-            if "pami" in fuentes:
+            filas = []
+            for clave in elegidas:
+                if clave in cargadas:
+                    nombre, ruta = cargadas[clave]
+                    for c in vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime), medicamento):
+                        filas.append({"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
+                                      "Laboratorio": c.laboratorio})
+            if filas:
+                st.dataframe(filas, hide_index=True, use_container_width=True)
+            sin_dato = [cargadas[k][0] for k in elegidas if k in cargadas and not any(f["Obra social"] == cargadas[k][0] for f in filas)]
+            if sin_dato:
+                st.caption(f"No figura en el vademécum de: {', '.join(sin_dato)}.")
+            if "pami" in elegidas and "pami" not in cargadas:
                 st.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
-                st.caption("Si PAMI no encuentra el producto, buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+                st.caption("PAMI no tiene archivo cargado: se consulta en Alfabeta. Si no encuentra el producto, "
+                           "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+            if "vale" in elegidas and "vale" not in cargadas:
+                st.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
             pregunta = medicamento  # además, lo que haya del producto (ofertas, cajón, catálogo)
         if pregunta.strip():
             r = consultas.buscar(base, pregunta, hoy)

@@ -264,18 +264,19 @@ FUENTES_COBERTURA = {
 _DESCARTAR = ("de", "del", "la", "el", "en", "salud", "para")
 
 
-def medicamento_de_cobertura(pregunta: str) -> tuple[str, list[str]] | None:
+def medicamento_de_cobertura(pregunta: str, fuentes_q: dict | None = None) -> tuple[str, list[str]] | None:
     """"clinal cobertura vale salud" -> ("clinal", ["vale"]). Sin fuente nombrada -> todas.
 
     None si no pregunta por cobertura.
     """
+    todas = {**FUENTES_COBERTURA, **(fuentes_q or {})}
     palabras_q = pregunta.split()
     if not any(normalizar(w).startswith(PALABRAS_COBERTURA) for w in palabras_q):
         return None
     fuentes, resto = [], []
     for w in palabras_q:
         n = normalizar(w)
-        fuente = next((f for f, claves in FUENTES_COBERTURA.items() if n in claves), None)
+        fuente = next((f for f, claves in todas.items() if n in claves), None)
         if fuente:
             fuentes.append(fuente)
         elif not n.startswith(PALABRAS_COBERTURA) and n not in _DESCARTAR:
@@ -283,7 +284,7 @@ def medicamento_de_cobertura(pregunta: str) -> tuple[str, list[str]] | None:
     medicamento = " ".join(resto).strip()
     if not medicamento:
         return None
-    return medicamento, (sorted(set(fuentes), key=list(FUENTES_COBERTURA).index) or list(FUENTES_COBERTURA))
+    return medicamento, (sorted(set(fuentes), key=list(todas).index) or list(todas))
 
 
 def es_consulta_de_salud(pregunta: str) -> bool:

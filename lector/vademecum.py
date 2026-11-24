@@ -1,4 +1,4 @@
-"""Vademécum de cobertura cargado como archivo (por ahora Vale Salud).
+"""Vademécums de cobertura cargados como archivo (uno por obra social; por ahora Vale Salud).
 
 Si existe consultas/Vademecum_Vale_Salud.xlsx (o .csv), el asistente muestra el % directamente
 ("CLINAL, pda.x 25 g · Andrómaco · 20 %"). Lee la primera hoja y reconoce solas las columnas de
@@ -17,7 +17,19 @@ from .cajones import _parecido
 from .consultas import normalizar
 
 CARPETA = Path(__file__).resolve().parent.parent / "consultas"
-ARCHIVOS = {"vale": ["Vademecum_Vale_Salud.xlsx", "Vademecum_Vale_Salud.csv"]}
+
+
+def fuentes(carpeta: Path = CARPETA) -> dict[str, tuple[str, Path]]:
+    """Cada archivo consultas/Vademecum_<Obra_social>.csv/.xlsx es una fuente de cobertura.
+
+    Clave = primera palabra del nombre en minúscula ("Vademecum_Vale_Salud.csv" -> "vale").
+    """
+    salida = {}
+    for ruta in sorted(carpeta.glob("Vademecum_*")):
+        if ruta.suffix.lower() in (".csv", ".xlsx"):
+            nombre = ruta.stem.removeprefix("Vademecum_").replace("_", " ").strip()
+            salida.setdefault(normalizar(nombre.split()[0]), (nombre, ruta))
+    return salida
 
 
 @dataclass
@@ -26,10 +38,7 @@ class Cobertura:
     laboratorio: str
     droga: str
     porcentaje: str
-
-
-def archivo(fuente: str) -> Path | None:
-    return next((CARPETA / n for n in ARCHIVOS.get(fuente, []) if (CARPETA / n).exists()), None)
+    codigo: str = ""
 
 
 def _filas(ruta: Path) -> list[list[str]]:
@@ -57,6 +66,7 @@ def leer(ruta: Path) -> list[Cobertura]:
         c_pct = col("%", "porcentaje", "descuento", "cobertura", "bonif")
         if c_prod is not None and c_pct is not None:
             c_lab, c_dro = col("laboratorio", "lab"), col("droga", "monodroga", "principio")
+            c_pres, c_cod = col("presentacion"), col("barra", "ean")
             break
     else:
         return []
@@ -73,11 +83,17 @@ def leer(ruta: Path) -> list[Cobertura]:
                 pct = f"{round(v * 100 if v <= 1 else v):g} %"
             except ValueError:
                 pass
-            salida.append(Cobertura(dato(f, c_prod), dato(f, c_lab), dato(f, c_dro), pct))
+            nombre = " ".join(x for x in (dato(f, c_prod), dato(f, c_pres)) if x)
+            fila = Cobertura(nombre, dato(f, c_lab), dato(f, c_dro), pct, dato(f, c_cod))
+            if fila not in salida:  # el archivo trae renglones repetidos
+                salida.append(fila)
     return salida
 
 
 def buscar(lista: list[Cobertura], medicamento: str, limite: int = 10) -> list[Cobertura]:
+    numeros = re.findall(r"\d{8,14}", medicamento)
+    if numeros:
+        return [c for c in lista if any(c.codigo.lstrip("0") == n.lstrip("0") for n in numeros)][:limite]
     claves = [w for w in re.findall(r"[a-z0-9]+", normalizar(medicamento)) if len(w) >= 2]
     if not claves:
         return []

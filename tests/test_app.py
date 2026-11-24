@@ -245,13 +245,14 @@ def test_escaneo_apagado_por_defecto_y_se_prende_por_secrets():
     assert hay(prendido)
 
 
-def test_cobertura_muestra_links_de_pami_y_vale_salud():
+def test_cobertura_muestra_tabla_y_link_de_pami():
     at = AppTest.from_file(APP, default_timeout=60).run()
-    at.text_input(key="consulta_txt").input("aquatop cobertura")
+    at.text_input(key="consulta_txt").input("clinal cobertura")
     at.button(key="btn_buscar").click().run()
+    tabla = at.dataframe[0].value
+    assert list(tabla["Obra social"]) == ["Vale Salud"] and list(tabla["Cobertura"]) == ["20 %"]
     urls = [b.proto.url for b in at.get("link_button")]
-    assert "https://www.alfabeta.net/precio/aquatop.html" in urls
-    assert "https://valesalud.ar/vademecum.html" in urls
+    assert "https://www.alfabeta.net/precio/clinal.html" in urls
 
 
 def test_ofertas_muestra_promos_de_la_semana_y_sin_carteles_por_defecto():
@@ -263,10 +264,10 @@ def test_ofertas_muestra_promos_de_la_semana_y_sin_carteles_por_defecto():
     assert any("Naranja X" in m.value for m in at.markdown)
 
 
-def test_cobertura_con_vale_muestra_solo_vale_salud():
+def test_cobertura_vale_muestra_solo_vale_salud_con_porcentaje():
     at = AppTest.from_file(APP, default_timeout=60).run()
     at.text_input(key="consulta_txt").input("clinal cobertura vale")
     at.button(key="btn_buscar").click().run()
-    urls = [b.proto.url for b in at.get("link_button")]
-    assert "https://valesalud.ar/vademecum.html" in urls
-    assert not any("alfabeta" in u for u in urls)
+    tabla = at.dataframe[0].value
+    assert "CLINAL pda.x 25 g" in list(tabla["Producto"]) and list(tabla["Laboratorio"]) == ["Andrómaco"]
+    assert not any("alfabeta" in b.proto.url for b in at.get("link_button"))

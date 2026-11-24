@@ -150,4 +150,4 @@ El asistente también busca en [`consultas/Precios_Quincena.docx`](consultas/Pre
 
 ### Cobertura de medicamentos (Vale Salud y PAMI)
 En el buscador: **medicamento + "cobertura"** (ej.: "clinal cobertura"). Con "vale" o "vale salud" muestra solo Vale Salud; con "pami" solo PAMI (Alfabeta); sin nombrarla, las dos.
-Si se sube a `consultas/` el vademécum de Vale Salud (el que se baja con el ícono ⬇ de la página) con el nombre **`Vademecum_Vale_Salud.xlsx`** (o `.csv`), la app muestra el % directamente (ej.: "CLINAL, pda.x 25 g · Andrómaco · 🟢 20 %"). Para actualizarlo, se sube el archivo nuevo con el mismo nombre.
+La app arma una tabla **obra social → %** con cada vademécum cargado en `consultas/` con el nombre `Vademecum_<Obra_social>.csv` (o `.xlsx`), por ejemplo `Vademecum_Vale_Salud.csv` (el que se baja con el ícono ⬇ de valesalud.ar). Para sumar otra obra social, se sube su archivo con ese formato de nombre; para actualizar, el archivo nuevo con el mismo nombre. PAMI se consulta por link a Alfabeta hasta tener un archivo.
