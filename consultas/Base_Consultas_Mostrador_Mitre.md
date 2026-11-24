@@ -416,7 +416,8 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 | bramedvalidacion.com | Bramed (respaldo) ✅ |
 | FTCheq | Programas de laboratorio y PICC ✅ |
 | [valesalud.ar/vademecum.html](https://valesalud.ar/vademecum.html) | Vale Salud: vademécum, para consultar qué medicamentos tienen descuento ✅ |
-| colmedse.com.ar · web.handlerfacaf.com.ar · apops.org.ar (descuento empleados ANSES) | ⚠️ de notas manuscritas |
+| [colmedse.com.ar/consulta-receta](https://colmedse.com.ar/consulta-receta) | Colegio Médico de Santiago del Estero: consultar y descargar recetas ✅ |
+| web.handlerfacaf.com.ar · apops.org.ar (descuento empleados ANSES) | ⚠️ de notas manuscritas |
 
 ### 8.3 Droguerías ✅
 Del Sud · Monroe · Suizo. (Medidor de glucosa PAMI: Monroe Córdoba ⚠️ borrador.)
