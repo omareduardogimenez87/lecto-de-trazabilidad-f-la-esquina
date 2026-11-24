@@ -25,13 +25,13 @@ from urllib.parse import quote
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import ayuda, cajones, catalogo, consultas, ofertas, precios, registro, vademecum
+from lector import ayuda, cajones, catalogo, consultas, ofertas, padron, precios, registro, vademecum
 
 # Streamlit Cloud a veces deja cargada la versión vieja de estos módulos después de un merge
 # (y aparece un AttributeError hasta hacer "Reboot app"). Si el archivo cambió, se vuelve a cargar.
 import importlib
 
-for _modulo in (consultas, ofertas, precios, cajones, catalogo, ayuda, vademecum):
+for _modulo in (consultas, ofertas, precios, cajones, catalogo, ayuda, vademecum, padron):
     _cambio = Path(_modulo.__file__).stat().st_mtime
     if getattr(_modulo, "_version_cargada", None) != _cambio:
         importlib.reload(_modulo)
@@ -1126,6 +1126,21 @@ if consultas.ARCHIVO.exists():
             etiquetas.append(CAJONES_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
+        dni = padron.dni_de_la_pregunta(pregunta) if pregunta.strip() else None
+        if dni:
+            # "dni 25333620": solo dice en qué lista de OSDOP figura (sin nombre ni enfermedad).
+            datos_padron, clave = padron.leer(), str(secretos().get("padron_clave", ""))
+            if not datos_padron or not clave:
+                st.info("🪪 El padrón de OSDOP todavía no está cargado.")
+            else:
+                listas = padron.consultar(datos_padron, dni, clave)
+                mes = datos_padron.get("mes", "")
+                if listas:
+                    nombres = [("Cobertura especial (crónico)" if l == "Cobertura especial" else l) for l in listas]
+                    st.success(f"🪪 DNI {dni}: figura en **{' · '.join(nombres)}**" + (f" (padrón {mes})" if mes else ""))
+                else:
+                    st.warning(f"🪪 DNI {dni}: **no figura** en el padrón de OSDOP" + (f" ({mes})" if mes else "") + ".")
+            pregunta = ""  # no buscar el número en el resto de la base
         cargadas = vademecum.fuentes()  # {"vale": ("Vale Salud", ruta)}
         cobertura = (consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas})
                      if pregunta.strip() else None)

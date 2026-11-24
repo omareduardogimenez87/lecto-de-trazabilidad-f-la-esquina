@@ -293,3 +293,10 @@ def test_vocabulario_y_sugerencias():
     vocab = ["CLINAL", "OXAGESIC", "paracetamol"]
     assert vademecum.sugerencias(vocab, "klinal") == ["CLINAL"]
     assert vademecum.sugerencias(vocab, "paracetamol") == []
+
+
+def test_dni_sin_padron_cargado_no_rompe():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("dni 25333620")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception
