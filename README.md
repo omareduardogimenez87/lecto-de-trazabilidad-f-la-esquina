@@ -147,3 +147,7 @@ Este repositorio es **privado**. No se suben fotos ni registros (lo impide el `.
 
 ### Lista de precios de la quincena (Word de comercial)
 El asistente también busca en [`consultas/Precios_Quincena.docx`](consultas/Precios_Quincena.docx): el Word con las tablas por rubro (producto, código, precio regular, oferta y fechas). Aparece junto con las Ofertas OTC. Cuando llegue la lista nueva, se sube el Word con **el mismo nombre** `Precios_Quincena.docx` a la carpeta `consultas` (Add file → Upload files), igual que el Excel de ofertas.
+
+### Cobertura de medicamentos (Vale Salud y PAMI)
+En el buscador: **medicamento + "cobertura"** (ej.: "clinal cobertura"). Con "vale" o "vale salud" muestra solo Vale Salud; con "pami" solo PAMI (Alfabeta); sin nombrarla, las dos.
+Si se sube a `consultas/` el vademécum de Vale Salud (el que se baja con el ícono ⬇ de la página) con el nombre **`Vademecum_Vale_Salud.xlsx`** (o `.csv`), la app muestra el % directamente (ej.: "CLINAL, pda.x 25 g · Andrómaco · 🟢 20 %"). Para actualizarlo, se sube el archivo nuevo con el mismo nombre.

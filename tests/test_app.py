@@ -261,3 +261,12 @@ def test_ofertas_muestra_promos_de_la_semana_y_sin_carteles_por_defecto():
     assert "Lo marcado con" not in textos
     at.pills(key="consulta_cat").set_value("🏷️ Ofertas").run()
     assert any("Naranja X" in m.value for m in at.markdown)
+
+
+def test_cobertura_con_vale_muestra_solo_vale_salud():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("clinal cobertura vale")
+    at.button(key="btn_buscar").click().run()
+    urls = [b.proto.url for b in at.get("link_button")]
+    assert "https://valesalud.ar/vademecum.html" in urls
+    assert not any("alfabeta" in u for u in urls)

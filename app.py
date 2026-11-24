@@ -25,13 +25,13 @@ from urllib.parse import quote
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import ayuda, cajones, catalogo, consultas, ofertas, precios, registro
+from lector import ayuda, cajones, catalogo, consultas, ofertas, precios, registro, vademecum
 
 # Streamlit Cloud a veces deja cargada la versión vieja de estos módulos después de un merge
 # (y aparece un AttributeError hasta hacer "Reboot app"). Si el archivo cambió, se vuelve a cargar.
 import importlib
 
-for _modulo in (consultas, ofertas, precios, cajones, catalogo, ayuda):
+for _modulo in (consultas, ofertas, precios, cajones, catalogo, ayuda, vademecum):
     _cambio = Path(_modulo.__file__).stat().st_mtime
     if getattr(_modulo, "_version_cargada", None) != _cambio:
         importlib.reload(_modulo)
@@ -889,6 +889,14 @@ def ofertas_otc(_modificado: float, _modificado_precios: float = 0):
 
 
 @st.cache_data(show_spinner=False)
+def vademecum_cargado(ruta: str, _modificado: float):
+    try:
+        return vademecum.leer(Path(ruta))
+    except Exception:
+        return []
+
+
+@st.cache_data(show_spinner=False)
 def mapa_de_cajones(_modificado: float):
     return cajones.leer() if cajones.ARCHIVO.exists() else []
 
@@ -1073,16 +1081,28 @@ if consultas.ARCHIVO.exists():
             etiquetas.append(CAJONES_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
-        medicamento = consultas.medicamento_de_cobertura(pregunta) if pregunta.strip() else None
-        if medicamento:
-            # "ibuprofeno cobertura": links a los vademécum de PAMI (Alfabeta) y Vale Salud.
+        cobertura = consultas.medicamento_de_cobertura(pregunta) if pregunta.strip() else None
+        if cobertura:
+            # "clinal cobertura vale": solo Vale Salud. Sin nombrar la fuente: todas.
+            medicamento, fuentes = cobertura
             slug = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(medicamento)))
             st.markdown(f"**🩺 Cobertura de {medicamento}**")
-            c1, c2 = st.columns(2)
-            c1.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
-            c2.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
-            st.caption(f"En Vale Salud buscá **{medicamento}** dentro de la página. Si PAMI no encuentra el producto, "
-                       "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+            if "vale" in fuentes:
+                ruta = vademecum.archivo("vale")
+                encontrados = vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime), medicamento) if ruta else []
+                if encontrados:
+                    st.markdown("**Vale Salud**")
+                    for c in encontrados:
+                        detalle = " · ".join(x for x in (c.laboratorio, c.droga) if x)
+                        st.markdown(f"- **{c.producto}**" + (f" · {detalle}" if detalle else "") + f" · 🟢 **{c.porcentaje}**")
+                elif ruta:
+                    st.info(f"Vale Salud: {medicamento} no figura en el vademécum cargado.")
+                st.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
+                if not ruta:
+                    st.caption(f"En Vale Salud buscá **{medicamento}** dentro de la página.")
+            if "pami" in fuentes:
+                st.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
+                st.caption("Si PAMI no encuentra el producto, buscalo en [alfabeta.net](https://www.alfabeta.net/).")
             pregunta = medicamento  # además, lo que haya del producto (ofertas, cajón, catálogo)
         if pregunta.strip():
             r = consultas.buscar(base, pregunta, hoy)
