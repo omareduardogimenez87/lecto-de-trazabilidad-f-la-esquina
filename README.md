@@ -151,3 +151,6 @@ El asistente también busca en [`consultas/Precios_Quincena.docx`](consultas/Pre
 ### Cobertura de medicamentos (Vale Salud y PAMI)
 En el buscador: **medicamento + "cobertura"** (ej.: "clinal cobertura"). Con "vale" o "vale salud" muestra solo Vale Salud; con "pami" solo PAMI (Alfabeta); sin nombrarla, las dos.
 La app arma una tabla **obra social → %** con cada vademécum cargado en `consultas/` con el nombre `Vademecum_<Obra_social>.csv` (o `.xlsx`), por ejemplo `Vademecum_Vale_Salud.csv` (el que se baja con el ícono ⬇ de valesalud.ar). Para sumar otra obra social, se sube su archivo con ese formato de nombre; para actualizar, el archivo nuevo con el mismo nombre. PAMI se consulta por link a Alfabeta hasta tener un archivo.
+
+### Padrón OSDOP por DNI
+Escribir **"dni 12345678"** (u "osdop 12345678"): la app dice si figura en **OSDOP**, **OSDOP Monotributo** o **Cobertura especial (crónico)**, o que no figura. En el repo solo hay `consultas/padron_osdop.json` con un código de cada DNI (HMAC con la clave `padron_clave` de Secrets): sin nombres, domicilios, fechas ni enfermedades. Los Excel del padrón **no se suben nunca** al repo. Cada mes se arma de nuevo con `herramientas/armar_padron.py` (o pidiéndoselo a Claude con los 3 Excel).
