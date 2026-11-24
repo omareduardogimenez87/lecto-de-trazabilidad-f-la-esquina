@@ -21,3 +21,5 @@ __pycache__/
 *osdop*.xlsx
 *OSDOP*.xlsx
 *cob*especial*.xlsx
+!static/
+!static/*.png
