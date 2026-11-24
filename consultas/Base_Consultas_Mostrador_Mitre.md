@@ -415,7 +415,10 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 | farmacia.lignumsoftware.com.ar | OSPES digital ✅ |
 | bramedvalidacion.com | Bramed (respaldo) ✅ |
 | FTCheq | Programas de laboratorio y PICC ✅ |
-| colmedse.com.ar · web.handlerfacaf.com.ar · apops.org.ar (descuento empleados ANSES) | ⚠️ de notas manuscritas |
+| [valesalud.ar/vademecum.html](https://valesalud.ar/vademecum.html) | Vale Salud: vademécum, para consultar qué medicamentos tienen descuento ✅ |
+| [alfabeta.net](https://www.alfabeta.net/) | Vademécum PAMI (precios de medicamentos): buscar el producto, por ejemplo [alfabeta.net/precio/aquatop.html](https://www.alfabeta.net/precio/aquatop.html) ✅ |
+| [colmedse.com.ar/consulta-receta](https://colmedse.com.ar/consulta-receta) | Colegio Médico de Santiago del Estero: consultar y descargar recetas ✅ |
+| web.handlerfacaf.com.ar · apops.org.ar (descuento empleados ANSES) | ⚠️ de notas manuscritas |
 
 ### 8.3 Droguerías ✅
 Del Sud · Monroe · Suizo. (Medidor de glucosa PAMI: Monroe Córdoba ⚠️ borrador.)

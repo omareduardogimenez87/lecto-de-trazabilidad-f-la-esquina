@@ -144,3 +144,6 @@ Este repositorio es **privado**. No se suben fotos ni registros (lo impide el `.
 - Fondo de la app: degradado lima, crema y lila.
 - **Probar con otro número o correo** (sin tocar el código): en Streamlit Cloud → Manage app → ⋮ → Settings → Secrets, agregar
   `whatsapp_destino = "3856210820"` y/o `correo_destino = "alguien@ejemplo.com"` y guardar (la app agrega el 549 si falta). Para volver a los de la Mitre, borrar esas líneas y guardar.
+
+### Lista de precios de la quincena (Word de comercial)
+El asistente también busca en [`consultas/Precios_Quincena.docx`](consultas/Precios_Quincena.docx): el Word con las tablas por rubro (producto, código, precio regular, oferta y fechas). Aparece junto con las Ofertas OTC. Cuando llegue la lista nueva, se sube el Word con **el mismo nombre** `Precios_Quincena.docx` a la carpeta `consultas` (Add file → Upload files), igual que el Excel de ofertas.

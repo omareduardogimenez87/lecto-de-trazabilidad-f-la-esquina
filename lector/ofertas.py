@@ -32,12 +32,15 @@ class Oferta:
     desde: date | None
     hasta: date | None
     nota: str
+    precio_oferta: float | None = None  # precio final ya calculado (lista de precios de la quincena)
 
     def unidades(self) -> int:
         return {"2x1": 2, "3x2": 3}.get(self.oferta.lower(), 1)
 
     def paga_el_cliente(self) -> float | None:
         """Mismo cálculo que la columna "Paga el cliente" del Excel."""
+        if self.precio_oferta is not None:
+            return self.precio_oferta
         if self.precio is None:
             return None
         o, d = self.oferta.lower(), self.descuento or 0
@@ -178,19 +181,21 @@ def buscar(ofertas: list[Oferta], pregunta: str, limite: int = 10) -> list[Ofert
         return []
     return [
         o for o in ofertas
-        if all(w in normalizar(f"{o.producto} {o.presentacion} {o.laboratorio} {o.id}") for w in claves)
+        if all(w in normalizar(f"{o.producto} {o.presentacion} {o.laboratorio} {o.id} {o.nota}") for w in claves)
     ][:limite]
 
 
 def ficha(o: Oferta, hoy: date) -> str:
     """Texto en Markdown para mostrar una oferta."""
     lineas = [f"**{o.producto}** · {o.presentacion}".rstrip(" ·"),
-              f"{o.laboratorio} · Código {o.codigo}".lstrip(" ·")]
+              " · ".join(x for x in (o.laboratorio, f"Código {o.codigo}" if o.codigo else "") if x)]
     estado = o.vigencia(hoy)
     hasta = o.hasta.strftime("%d/%m/%Y") if o.hasta else "sin fecha"
     marca = {"vigente": "🏷️", "vencida": "❌", "todavía no empieza": "⏳"}[estado]
     lineas.append(f"{marca} **{o.texto_oferta()}** · hasta {hasta}" + ("" if estado == "vigente" else f" · **{estado}**"))
-    if o.precio is None:
+    if o.precio is None and o.precio_oferta is not None:
+        lineas.append(f"💲 Precio oferta **{pesos(o.precio_oferta)}**")
+    elif o.precio is None:
         lineas.append(f"💲 Precio: _{SIN_PRECIO}_")
     else:
         paga = o.paga_el_cliente()
@@ -200,4 +205,4 @@ def ficha(o: Oferta, hoy: date) -> str:
         lineas.append(detalle)
     if o.nota:
         lineas.append(f"📝 {o.nota}")
-    return "  \n".join(lineas)
+    return "  \n".join(l for l in lineas if l)

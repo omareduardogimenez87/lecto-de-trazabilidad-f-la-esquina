@@ -25,7 +25,7 @@ from urllib.parse import quote
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import ayuda, cajones, catalogo, consultas, ofertas, registro
+from lector import ayuda, cajones, catalogo, consultas, ofertas, precios, registro
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, leer_codigos_de_producto, ocr_disponible
@@ -867,8 +867,15 @@ def mostrar_horario_de_hoy(base, hoy) -> None:
 
 
 @st.cache_data(show_spinner=False)
-def ofertas_otc(_modificado: float):
-    return ofertas.leer() if ofertas.ARCHIVO.exists() else []
+def ofertas_otc(_modificado: float, _modificado_precios: float = 0):
+    """Ofertas OTC del Excel + lista de precios de la quincena (Word de comercial)."""
+    lista = ofertas.leer() if ofertas.ARCHIVO.exists() else []
+    if precios.ARCHIVO.exists():
+        try:
+            lista += precios.leer()
+        except Exception:
+            pass  # si el Word viene con otro formato, que no se caiga la app
+    return lista
 
 
 @st.cache_data(show_spinner=False)
@@ -990,7 +997,8 @@ if consultas.ARCHIVO.exists():
     # Siempre a la vista (sin desplegable), así no se cierra ni se abre solo al buscar o escanear.
     with st.container(border=True, key="consultas"):
         base = base_de_consultas(consultas.ARCHIVO.stat().st_mtime)
-        lista_ofertas = ofertas_otc(ofertas.ARCHIVO.stat().st_mtime if ofertas.ARCHIVO.exists() else 0)
+        lista_ofertas = ofertas_otc(ofertas.ARCHIVO.stat().st_mtime if ofertas.ARCHIVO.exists() else 0,
+                                    precios.ARCHIVO.stat().st_mtime if precios.ARCHIVO.exists() else 0)
         items_cajones = mapa_de_cajones(cajones.ARCHIVO.stat().st_mtime if cajones.ARCHIVO.exists() else 0)
         productos = catalogo_de_productos(catalogo.ARCHIVO.stat().st_mtime if catalogo.ARCHIVO.exists() else 0)
         hoy = consultas.hoy_argentina()
