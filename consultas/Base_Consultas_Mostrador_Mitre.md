@@ -418,7 +418,7 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 | FTCheq | Programas de laboratorio y PICC ✅ |
 | [valesalud.ar/vademecum.html](https://valesalud.ar/vademecum.html) | Vale Salud: vademécum, para consultar qué medicamentos tienen descuento ✅ |
 | **PAMI** ([Alfabeta](https://www.alfabeta.net/)) | PAMI: vademécum y precios de medicamentos; buscar el producto, por ejemplo [alfabeta.net/precio/aquatop.html](https://www.alfabeta.net/precio/aquatop.html) ✅ |
-| **Colegio de Médicos** ([Colmedse](https://colmedse.com.ar/consulta-receta)) | Colegio de Médicos de Santiago del Estero (Colegio Médico): consultar y descargar la receta o recetas ✅ |
+| **Colegio de Médicos** ([Colmedse](https://colmedse.com.ar/consulta-receta)) | Colegio de Médicos de Santiago del Estero (Colegio Médico): los médicos cargan la receta y la farmacia la descarga para imprimir (imprimir receta, descargar receta) ✅ |
 | web.handlerfacaf.com.ar · apops.org.ar (descuento empleados ANSES) | ⚠️ de notas manuscritas |
 
 ### 8.3 Droguerías ✅
