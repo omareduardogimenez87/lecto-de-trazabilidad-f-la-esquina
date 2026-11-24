@@ -300,3 +300,16 @@ def test_dni_sin_padron_cargado_no_rompe():
     at.text_input(key="consulta_txt").input("dni 25333620")
     at.button(key="btn_buscar").click().run()
     assert not at.exception
+
+
+def test_contrasena_de_la_app():
+    at = AppTest.from_file(APP, default_timeout=60)
+    at.secrets["clave_app"] = "mitre123"
+    at.run()
+    assert not [t for t in at.text_input if t.key == "consulta_txt"]
+    at.text_input(key="clave_ingresada").input("mal").run()
+    at.button[0].click().run()
+    assert at.error and not [t for t in at.text_input if t.key == "consulta_txt"]
+    at.text_input(key="clave_ingresada").input("mitre123")
+    at.button[0].click().run()
+    assert [t for t in at.text_input if t.key == "consulta_txt"]

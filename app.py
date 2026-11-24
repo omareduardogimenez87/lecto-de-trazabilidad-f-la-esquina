@@ -186,6 +186,23 @@ def secretos() -> dict:
 # se prende en Secrets con  escaneo_activo = true  (el código del lector queda intacto).
 ESCANEO_ACTIVO = str(secretos().get("escaneo_activo", False)).strip().lower() in ("true", "1", "si", "sí")
 
+# Contraseña para entrar a la app (pedido de Edu, 24/11/2026). Se activa poniendo en Secrets
+#   clave_app = "la-clave"
+# Sin esa línea la app abre como siempre. Se pide una vez por sesión del navegador.
+CLAVE_APP = str(secretos().get("clave_app", "")).strip()
+if CLAVE_APP and not st.session_state.get("entro"):
+    with st.form("form_clave", border=True):
+        st.markdown("🔒 **Ingresá la contraseña de la app**")
+        escrita = st.text_input("Contraseña", type="password", key="clave_ingresada")
+        if st.form_submit_button("Entrar", type="primary", use_container_width=True):
+            import hmac as _hmac
+
+            if _hmac.compare_digest(escrita.strip(), CLAVE_APP):
+                st.session_state["entro"] = True
+                st.rerun()
+            st.error("Contraseña incorrecta.")
+    st.stop()
+
 
 @st.cache_resource(show_spinner="Conectando con la planilla de registros…")
 def abrir_planilla(cuenta: tuple, url: str):
