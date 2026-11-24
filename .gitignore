@@ -15,6 +15,7 @@ __pycache__/
 .streamlit/secrets.toml
 !imagenes/*.png
 !consultas/*.xlsx
+!consultas/Vademecum_*.csv
 
 # Padrones de afiliados: nunca al repo (solo va padron_osdop.json con códigos)
 *osdop*.xlsx
