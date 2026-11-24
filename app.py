@@ -26,6 +26,16 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from lector import ayuda, cajones, catalogo, consultas, ofertas, precios, registro
+
+# Streamlit Cloud a veces deja cargada la versión vieja de estos módulos después de un merge
+# (y aparece un AttributeError hasta hacer "Reboot app"). Si el archivo cambió, se vuelve a cargar.
+import importlib
+
+for _modulo in (consultas, ofertas, precios, cajones, catalogo, ayuda):
+    _cambio = Path(_modulo.__file__).stat().st_mtime
+    if getattr(_modulo, "_version_cargada", None) != _cambio:
+        importlib.reload(_modulo)
+        _modulo._version_cargada = _cambio
 from lector.calidad import ESTADO_OK, ESTADO_OTRA_FOTO, estado, medir
 from lector.gs1 import gtin_es_valido
 from lector.imagen import abrir, analizar, fecha_de_la_foto, leer_codigos_de_producto, ocr_disponible
@@ -904,7 +914,7 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
     st.divider()
 
 
-OFERTAS_ETIQUETA = "💊 Ofertas OTC"
+OFERTAS_ETIQUETA = "🏷️ Ofertas"
 AYUDA_ETIQUETA = "❓ Ayuda de la app"
 SECCIONES_CON_BOTON = ()  # ninguna sección del .md tiene botón (pedido de Edu); se encuentran escribiendo
 ESTILO_BUSCADOR = """
@@ -1095,7 +1105,7 @@ if consultas.ARCHIVO.exists():
                 if r["sin_horario"]:
                     st.info(f"🕒 {consultas.SIN_HORARIO}")
                 if encontradas:
-                    st.markdown("<small>Ofertas OTC</small>", unsafe_allow_html=True)
+                    st.markdown("<small>Ofertas</small>", unsafe_allow_html=True)
                     if en_cajon:
                         st.caption(f"🏷️ Hay ofertas de este producto: {cajones.VERIFICAR}.")
                     mostrar_ofertas(encontradas, hoy)
@@ -1114,7 +1124,7 @@ if consultas.ARCHIVO.exists():
                 if not (r["datos"] or r["hoy"] or r["sin_horario"] or encontradas or en_cajon or del_catalogo or de_ayuda):
                     if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
-                    else:
+                    elif len(pregunta.strip()) >= 2:
                         st.info(consultas.SIN_DATO)
         elif categoria == AYUDA_ETIQUETA:
             st.markdown(ayuda.AYUDA)
@@ -1127,9 +1137,21 @@ if consultas.ARCHIVO.exists():
                     it.nombre + (" ⚠️" if it.a_confirmar else "") for it in contenido))
             st.caption("⚠️ = nombre a confirmar (revisar la caja).")
         elif categoria == OFERTAS_ETIQUETA:
+            # Todas las ofertas juntas: promos de la semana (tarjetas, bancos, laboratorios) y productos.
+            # Una tarjeta por promo (se lee mejor en el celular que la tabla). Las vencidas no se muestran.
+            promos = [d for d in base.datos if d.seccion == "7" and d.titulo == "Promociones vigentes"
+                      and not d.texto.startswith("Fecha de referencia")]
+            if promos:
+                st.markdown("**🎉 Promociones de la semana** (tarjetas, bancos y laboratorios)")
+                for d in promos:
+                    if consultas._promo_vencida(d, hoy):
+                        continue
+                    with st.container(border=True):
+                        st.markdown(consultas.con_aviso(d, hoy))
+                st.markdown("**💊 Productos en oferta**")
             vigentes = [o for o in lista_ofertas if o.vigencia(hoy) != "vencida"]
             st.markdown(f"**{len(lista_ofertas)} productos en oferta** · sin precio cargado: "
-                        f"{sum(1 for o in lista_ofertas if o.precio is None)}")
+                        f"{sum(1 for o in lista_ofertas if o.paga_el_cliente() is None)}")
             if len(vigentes) < len(lista_ofertas):
                 st.warning(f"❌ {len(lista_ofertas) - len(vigentes)} ofertas ya están vencidas.")
             st.dataframe(
@@ -1137,7 +1159,7 @@ if consultas.ARCHIVO.exists():
                     "Producto": f"{o.producto} {o.presentacion}".strip(),
                     "Oferta": o.texto_oferta(),
                     "Hasta": (o.hasta.strftime("%d/%m/%Y") if o.hasta else "—") + ("" if o.vigencia(hoy) == "vigente" else f" ({o.vigencia(hoy)})"),
-                    "Paga el cliente": ofertas.pesos(o.paga_el_cliente()) if o.precio is not None else ofertas.SIN_PRECIO,
+                    "Paga el cliente": ofertas.pesos(o.paga_el_cliente()) if o.paga_el_cliente() is not None else ofertas.SIN_PRECIO,
                     "Código": o.codigo,
                 } for o in lista_ofertas],
                 hide_index=True, use_container_width=True,
@@ -1151,8 +1173,6 @@ if consultas.ARCHIVO.exists():
                 # Fuera del período cargado solo se muestran las reglas fijas (2.2).
                 contenido = contenido[contenido.find("### 2.2"):] if "### 2.2" in contenido else ""
             st.markdown(contenido)
-        st.caption(f"Lo marcado con ⚠️ está {consultas.A_CONFIRMAR}. "
-                   "Las consultas de salud (dosis, para qué sirve) las responde la farmacéutica.")
 
 # Soporte: abre el sistema de tickets del Área TI en otra pestaña, con el logo de I.T. AREA.
 LOGO_TI = IMAGENES / "logo_ti.png"

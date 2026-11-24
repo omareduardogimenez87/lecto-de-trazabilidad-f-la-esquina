@@ -252,3 +252,12 @@ def test_cobertura_muestra_links_de_pami_y_vale_salud():
     urls = [b.proto.url for b in at.get("link_button")]
     assert "https://www.alfabeta.net/precio/aquatop.html" in urls
     assert "https://valesalud.ar/vademecum.html" in urls
+
+
+def test_ofertas_muestra_promos_de_la_semana_y_sin_carteles_por_defecto():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    textos = " ".join(m.value for m in at.markdown) + " ".join(c.value for c in at.caption)
+    assert "No tengo ese dato cargado" not in " ".join(i.value for i in at.info)
+    assert "Lo marcado con" not in textos
+    at.pills(key="consulta_cat").set_value("🏷️ Ofertas").run()
+    assert any("Naranja X" in m.value for m in at.markdown)
