@@ -25,7 +25,7 @@ from urllib.parse import quote
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import ayuda, cajones, catalogo, consultas, matriculas, ofertas, padron, precios, registro, vademecum
+from lector import ayuda, cajones, catalogo, consultas, foto_consulta, matriculas, miniaturas, ofertas, padron, precios, registro, vademecum
 
 # Streamlit Cloud a veces deja cargada la versión vieja de estos módulos después de un merge
 # (y aparece un AttributeError hasta hacer "Reboot app"). Si el archivo cambió, se vuelve a cargar.
@@ -468,7 +468,7 @@ function ajustar() {
     if (i.getAttribute('capture') !== 'environment') i.setAttribute('capture', 'environment');
     if (i.getAttribute('accept') !== 'image/*') i.setAttribute('accept', 'image/*');
   });
-  doc.querySelectorAll('.st-key-galeria input[type=file]').forEach(i => {
+  doc.querySelectorAll('.st-key-galeria input[type=file], .st-key-foto_consulta input[type=file]').forEach(i => {
     if (i.getAttribute('accept') !== 'image/*') i.setAttribute('accept', 'image/*');
   });
 }
@@ -935,16 +935,49 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
     if len(encontrados) > maximo:
         st.caption("Por categoría: " + " · ".join(f"{c} ({n})" for c, n in cats.most_common(4))
                    + "  \nPor marca: " + " · ".join(f"{m} ({n})" for m, n in marcas.most_common(5)))
-    st.markdown("\n".join(
-        f"- **{p.nombre}** · {p.marca} · _{p.categoria}_" + (" · 🏷️ en oferta" if p.sku.lstrip("0") in con_oferta else "")
-        for p in encontrados[:maximo]
-    ))
+    ean_por_sku = {o.id.lstrip("0"): o.codigo for o in lista_ofertas if o.id}
+    for i, p in enumerate(encontrados[:maximo]):
+        sku = p.sku.lstrip("0")
+        texto = (f"**{p.nombre}**  \n{p.marca} · _{p.categoria}_"
+                 + (f"  \n{ETIQUETA_OFERTA}" if sku in con_oferta else ""))
+        foto = miniatura(ean_por_sku.get(sku, ""), p.sku, p.nombre) if i < MINIATURAS_MAX else None
+        if foto:
+            c_foto, c_txt = st.columns([1, 4], vertical_alignment="center")
+            c_foto.image(foto, width=72)
+            c_txt.markdown(texto, unsafe_allow_html=True)
+        else:
+            st.markdown(texto, unsafe_allow_html=True)
     if len(encontrados) > maximo:
         st.caption(f"Y {len(encontrados) - maximo} más: escribí más palabras para achicar la búsqueda.")
     st.divider()
 
 
 OFERTAS_ETIQUETA = "🏷️ Ofertas"
+# "En oferta" bien visible en el catálogo (pedido de Edu, 25/11/2026).
+ETIQUETA_OFERTA = ('<span style="display:inline-block; margin-top:.25rem; background:#e9473f; color:#fff; '
+                   'font-weight:800; font-size:1.05rem; letter-spacing:.03em; padding:.2rem .7rem; '
+                   'border-radius:999px; box-shadow:0 1px 3px rgba(0,0,0,.25);">🏷️ EN OFERTA</span>')
+MINIATURAS_MAX = 5  # fotos por búsqueda (las primeras), para que cargue rápido
+# Fotos desde la tienda web: prendidas salvo que en Secrets diga  fotos_tienda = false
+FOTOS_TIENDA = str(secretos().get("fotos_tienda", True)).strip().lower() not in ("false", "0", "no")
+
+
+@st.cache_data(ttl=7 * 24 * 3600, show_spinner=False)
+def miniatura(ean: str, sku: str, nombre: str):
+    """Foto chiquita del producto: la de consultas/fotos/ o, si no hay, la de la tienda web. None si no hay."""
+    local = miniaturas.foto_local(ean, sku)
+    if local:
+        return str(local)
+    return miniaturas.foto_de_la_tienda(ean, nombre) if FOTOS_TIENDA else None
+
+
+@st.cache_data(show_spinner=False)
+def vocabulario_de_productos(_lista_ofertas, _items_cajones, _productos, _vademecum, clave: str) -> set:
+    return foto_consulta.vocabulario(
+        [o.producto for o in _lista_ofertas] + [it.nombre for it in _items_cajones]
+        + [p.nombre for p in _productos] + [p.marca for p in _productos] + [c.producto for _, c in _vademecum]
+    )
+
 AYUDA_ETIQUETA = "❓ Ayuda de la app"
 SECCIONES_CON_BOTON = ()  # ninguna sección del .md tiene botón (pedido de Edu); se encuentran escribiendo
 ESTILO_BUSCADOR = """
@@ -956,6 +989,17 @@ ESTILO_BUSCADOR = """
 .st-key-buscador [data-testid="InputInstructions"] { display: none !important; }
 .st-key-buscador [data-testid="stFormSubmitButton"] button { min-height: 2.6rem; padding: 0; font-size: 1.2rem; }
 .st-key-buscador input { padding-right: 2.6rem !important; }
+/* Fila del buscador: [caja + 🔎] y al lado el 📷 para consultar con foto. */
+.st-key-fila_buscar [data-testid="stHorizontalBlock"]:has(.st-key-foto_consulta) { flex-wrap: nowrap !important; gap: .4rem; align-items: center; }
+.st-key-fila_buscar [data-testid="stColumn"]:has(.st-key-buscador) { flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; }
+.st-key-fila_buscar [data-testid="stColumn"]:has(.st-key-foto_consulta) { flex: 0 0 3rem !important; min-width: 3rem !important; width: 3rem !important; }
+.st-key-foto_consulta [data-testid="stFileUploaderDropzoneInstructions"],
+.st-key-foto_consulta [data-testid="stFileChip"], .st-key-foto_consulta [data-testid="stFileUploaderFile"] { display: none !important; }
+.st-key-foto_consulta section { padding: 0; background: transparent; border: none; display: block; min-height: 0; }
+.st-key-foto_consulta section > span, .st-key-foto_consulta section button { display: block !important; width: 100% !important; max-width: none; }
+.st-key-foto_consulta section button { min-height: 2.6rem; padding: 0; font-size: 0 !important; border-radius: .5rem; }
+.st-key-foto_consulta section button * { display: none !important; }
+.st-key-foto_consulta section button::before { content: "📷"; font-size: 1.2rem; }
 .boton-voz { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); border: none; background: transparent;
   font-size: 1.25rem; cursor: pointer; z-index: 5; padding: .2rem; line-height: 1; }
 .boton-voz.escuchando { animation: latido 1s infinite; }
@@ -1008,8 +1052,14 @@ def mostrar_cajones(encontrados) -> None:
 
 
 def mostrar_ofertas(lista, hoy) -> None:
-    for o in lista:
-        st.markdown(ofertas.ficha(o, hoy))
+    for i, o in enumerate(lista):
+        foto = miniatura(o.codigo, o.id, f"{o.producto} {o.presentacion}".strip()) if i < MINIATURAS_MAX else None
+        if foto:
+            c_foto, c_txt = st.columns([1, 4])
+            c_foto.image(foto, width=72)
+            c_txt.markdown(ofertas.ficha(o, hoy))
+        else:
+            st.markdown(ofertas.ficha(o, hoy))
         st.divider()
 
 
@@ -1097,19 +1147,64 @@ if consultas.ARCHIVO.exists():
             unsafe_allow_html=True,
         )
         st.caption("Escribí (o dictá con 🎤) una palabra o el número del código y tocá 🔎 o Enter (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
-                   "quién trabaja hoy, la foto no se lee). Para los cajones sirve aunque esté mal escrito.")
+                   "quién trabaja hoy). Con 📷 sacás una foto del producto o de su código de barras y lo busca solo. "
+                   "Para los cajones sirve aunque esté mal escrito.")
         # Buscador: se escribe y se busca con Enter o con el botón 🔎. El 🎤 (si el navegador lo permite)
         # dicta la búsqueda por voz. Va en un formulario para que busque solo al confirmar.
         st.markdown(ESTILO_BUSCADOR, unsafe_allow_html=True)
         if "consulta_sugerida" in st.session_state:  # tocó una sugerencia ("¿Quisiste decir…?")
             st.session_state["consulta_txt"] = st.session_state.pop("consulta_sugerida")
-        with st.container(key="buscador"):
-            with st.form("form_buscar", border=False):
-                col_txt, col_btn = st.columns([6, 1])
-                pregunta = col_txt.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
-                                              placeholder="Escribí o dictá tu consulta...")
-                col_btn.form_submit_button("🔎", key="btn_buscar", use_container_width=True, help="Buscar")
+        st.session_state.setdefault("ronda_foto_consulta", 0)
+        with st.container(key="fila_buscar"):
+            col_form, col_foto = st.columns([7, 1])
+            with col_form, st.container(key="buscador"):
+                with st.form("form_buscar", border=False):
+                    col_txt, col_btn = st.columns([6, 1])
+                    pregunta = col_txt.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
+                                                  placeholder="Escribí, dictá o sacá una foto...")
+                    col_btn.form_submit_button("🔎", key="btn_buscar", use_container_width=True, help="Buscar")
+            # 📷 Consultar con foto: código de barras (exacto) o, si no se ve, el nombre impreso en el envase (OCR).
+            with col_foto, st.container(key="foto_consulta"):
+                foto_consulta_archivo = st.file_uploader(
+                    "Consultar con foto", type=TIPOS_FOTO, label_visibility="collapsed",
+                    key=f"foto_consulta_{st.session_state['ronda_foto_consulta']}",
+                )
         components.html(SCRIPT_VOZ, height=0)
+        if foto_consulta_archivo is not None:
+            with st.spinner("Leyendo la foto..."):
+                try:
+                    img_consulta = abrir(foto_consulta_archivo)
+                    codigos_foto = leer_codigos_de_producto(img_consulta)
+                except Exception:
+                    img_consulta, codigos_foto = None, []
+                palabras_foto = []
+                if img_consulta is not None and not any(ofertas.por_codigo(lista_ofertas, c) for c in codigos_foto):
+                    try:
+                        from lector.imagen import leer_texto
+                        clave_vocab = f"{len(lista_ofertas)}-{len(items_cajones)}-{len(productos)}"
+                        conocidas = vocabulario_de_productos(lista_ofertas, items_cajones, productos,
+                                                             todos_los_vademecum(), clave_vocab)
+                        palabras_foto = foto_consulta.producto_en_la_foto(leer_texto(img_consulta), conocidas)
+                    except Exception:
+                        palabras_foto = []
+            c_ver, c_limpiar = st.columns([3, 1], vertical_alignment="center")
+            if img_consulta is not None:
+                c_ver.image(img_consulta, width=90)
+            if c_limpiar.button("🧹", key="limpiar_foto_consulta", help="Sacar la foto"):
+                st.session_state["ronda_foto_consulta"] += 1
+                st.rerun()
+            if palabras_foto:
+                st.caption(f"📷 En la foto leí: **{palabras_foto[0].upper()}**"
+                           + (f" (también: {', '.join(p.upper() for p in palabras_foto[1:])})" if len(palabras_foto) > 1 else ""))
+                pregunta = palabras_foto[0]
+            elif codigos_foto:
+                for codigo in codigos_foto:
+                    responder_codigo(codigo, base, lista_ofertas, hoy)
+                pregunta = ""
+            else:
+                st.warning("📷 No pude leer el producto en la foto. Probá de más cerca, con buena luz, "
+                           "enfocando el nombre o el código de barras, o escribilo en el buscador.")
+                pregunta = ""
 
         # Escaneo apagado hasta tener los códigos cargados. Para activarlo: en Secrets, escaneo_activo = true
         if ESCANEO_ACTIVO:
@@ -1180,6 +1275,11 @@ if consultas.ARCHIVO.exists():
         cargadas = vademecum.fuentes()  # {"vale": ("Vale Salud", ruta)}
         cobertura = (consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas})
                      if pregunta.strip() else None)
+        if not cobertura and pregunta.strip():
+            # "factor ae vale salud" (sin la palabra cobertura): solo si el producto figura en el vademécum.
+            posible = consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas}, con_fuente=True)
+            if posible and any(vademecum.buscar([c for _, c in todos_los_vademecum()], posible[0])):
+                cobertura = posible
         if cobertura:
             # "clinal cobertura": tabla obra social -> % con todos los vademécums cargados.
             # "clinal cobertura vale": solo Vale Salud.
@@ -1249,7 +1349,7 @@ if consultas.ARCHIVO.exists():
                     if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
                     elif len(pregunta.strip()) >= 2:
-                        st.info(consultas.SIN_DATO)
+                        # Sin cartel de "No tengo ese dato cargado" (pedido de Edu): solo las sugerencias.
                         sugerir(pregunta)
         elif categoria == AYUDA_ETIQUETA:
             st.markdown(ayuda.AYUDA)
