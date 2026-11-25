@@ -350,12 +350,13 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 
 ## 7. Promociones vigentes
 
-> Fecha de referencia de esta versión: **23/11/2026**. La app compara "Hasta" con la fecha del día.
+> Fecha de referencia de esta versión: **25/11/2026**. La app compara "Hasta" con la fecha del día.
 
 | Promo | Descuento | Código | Desde | Hasta | Dónde | Estado |
 |---|---|---|---|---|---|---|
 | Andrómaco / Avanter "Promoción especial acuerdo" | 40 % | 5050100204385674 | 13/11/2026 | **30/11/2026** | — | ✅ |
 | Naranja X con **NX Crédito**: 25 % off + 6 cuotas cero interés · tope de reintegro $30.000 · el cliente ve el descuento reflejado en el recibo/resumen | 25 % | — | 24/11/2026 | **29/11/2026** | Todas (pago con NX Crédito) | ✅ |
+| Sertal Compuesto VL x10 y x20 · se activa con el stock que hay hasta que llegue el pedido (aviso de Germán, ROC) | 25 % | — | 25/11/2026 | **31/01/2027** | Todas | ✅ |
 | Kit Autobronceante Dermaglós (sérum facial + crema corporal 150 g, neceser de regalo) | 40 % | ⚠️ ¿el del acuerdo Andrómaco? | — | Hasta agotar stock | **Solo Avellaneda y Mitre** | ✅ (código ⚠️) |
 | Egestan Fólico | 20 % | +35270 | 30/10/2026 | ⚠️ sin fecha informada | Cargada en sistema | ✅ |
 | Femexin | 20 % | +35337 | 30/10/2026 | ⚠️ sin fecha informada | Cargada en sistema | ✅ |
