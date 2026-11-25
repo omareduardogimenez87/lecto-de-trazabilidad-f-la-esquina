@@ -94,3 +94,22 @@ def test_medicamento_de_cobertura():
     assert medicamento_de_cobertura("Tafirol 1g cobertura pami") == ("Tafirol 1g", ["pami"])
     assert medicamento_de_cobertura("Clinal cobertura vale salud") == ("Clinal", ["vale"])
     assert medicamento_de_cobertura("ibuprofeno") is None
+
+
+def test_filtros_de_variantes_del_vademecum():
+    from lector import vademecum
+
+    lista = [
+        vademecum.Cobertura("LEVOTIROXINA 50 mcg comp.x 50", "Lab A", "levotiroxina", "20 %", marca="LEVOTIROXINA"),
+        vademecum.Cobertura("LEVOTIROXINA 100 mcg comp.x 50", "Lab A", "levotiroxina", "20 %", marca="LEVOTIROXINA"),
+        vademecum.Cobertura("T4 MONTPELLIER 100 mcg comp.x 50", "Montpellier", "levotiroxina", "40 %", marca="T4 MONTPELLIER"),
+        vademecum.Cobertura("T4 MONTPELLIER 25 mcg gts.x 20", "Montpellier", "levotiroxina", "40 %", marca="T4 MONTPELLIER"),
+    ]
+    assert len(vademecum.buscar(lista, "t4 levo")) == 4  # t4 = levotiroxina
+    v = vademecum.variantes(lista)
+    assert v["Dosis"] == ["25 mcg", "50 mcg", "100 mcg"]
+    assert v["Presentación"] == ["Comprimidos", "Gotas"]
+    assert set(v["Marca"]) == {"LEVOTIROXINA", "T4 MONTPELLIER"}
+    f = vademecum.filtrar(lista, {"Dosis": ["100 mcg"], "Laboratorio": ["Montpellier"]})
+    assert [c.producto for c in f] == ["T4 MONTPELLIER 100 mcg comp.x 50"]
+    assert vademecum.marca_corta(vademecum.Cobertura("IBUPIRAC 600 MG comp.", "", "", "", marca="IBUPIRAC 600 MG")) == "IBUPIRAC"

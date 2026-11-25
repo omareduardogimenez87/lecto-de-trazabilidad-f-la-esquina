@@ -1059,15 +1059,43 @@ def sugerir(texto: str, sufijo: str = "", lugar: str = "general") -> None:
             st.rerun()
 
 
+TOPE_VARIANTES = 300  # cuántos renglones del vademécum se juntan antes de filtrar
+MOSTRAR_COBERTURA = 15  # renglones de la tabla de cobertura
+
+
+def filtros_de_variantes(pares: list, clave: str, desde: int = 5) -> list:
+    """Si la búsqueda trae muchas variantes ("t4 levo"), filtros para tildar: marca, dosis, presentación y laboratorio.
+
+    Las opciones salen solo de lo que encontró esa búsqueda. Sin nada tildado, muestra todo.
+    """
+    lista = [c for _, c in pares]
+    opciones = vademecum.variantes(lista)
+    if len(pares) < desde or not opciones:
+        return pares
+    elegidos = {}
+    with st.expander(f"🔎 Filtrar las {len(pares)} variantes ({', '.join(opciones).lower()})"):
+        for nombre, valores in opciones.items():
+            elegidos[nombre] = st.pills(nombre, valores, selection_mode="multi",
+                                        key=f"filtro_{clave}_{nombre}") or []
+    if not any(elegidos.values()):
+        return pares
+    quedan = {id(c) for c in vademecum.filtrar(lista, elegidos)}
+    pares = [(n, c) for n, c in pares if id(c) in quedan]
+    if not pares:
+        st.caption("Ninguna variante tiene todo lo tildado: destildá algún filtro.")
+    return pares
+
+
 def fichas_de_vademecum(pregunta: str, maximo: int = 5) -> bool:
     """Datos del producto que figuran en los vademécums (laboratorio, droga, presentación, cobertura).
 
     No se muestra para qué sirve ni dosis: eso lo responde la farmacéutica (regla de la app).
     """
+    pares = [(nombre, c) for nombre, c in todos_los_vademecum() if vademecum.buscar([c], pregunta)]
+    pares = filtros_de_variantes(pares, f"ficha_{consultas.normalizar(pregunta)}")
     por_producto: dict[str, list] = {}
-    for nombre, c in todos_los_vademecum():
-        if vademecum.buscar([c], pregunta):
-            por_producto.setdefault(c.producto, []).append((nombre, c))
+    for nombre, c in pares:
+        por_producto.setdefault(c.producto, []).append((nombre, c))
     for producto, filas in list(por_producto.items())[:maximo]:
         c = filas[0][1]
         coberturas = " · ".join(f"{n} {x.porcentaje}" for n, x in filas)
@@ -1192,16 +1220,20 @@ if consultas.ARCHIVO.exists():
             # "clinal cobertura vale": solo Vale Salud.
             medicamento, elegidas = cobertura
             st.markdown(f"**🩺 Cobertura de {medicamento}**")
-            filas = []
+            pares = []
             for clave in elegidas:
                 if clave in cargadas:
                     nombre, ruta = cargadas[clave]
-                    for c in vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime), medicamento):
-                        filas.append({"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
-                                      "Laboratorio": c.laboratorio, "Droga": c.droga, "Marca": c.marca})
+                    pares += [(nombre, c) for c in vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime),
+                                                                    medicamento, limite=TOPE_VARIANTES)]
+            pares = filtros_de_variantes(pares, f"cob_{consultas.normalizar(medicamento)}")
+            filas = [{"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
+                      "Laboratorio": c.laboratorio, "Droga": c.droga, "Marca": c.marca} for nombre, c in pares]
             if filas:
-                st.dataframe([{k: v for k, v in f.items() if k != "Marca"} for f in filas],
+                st.dataframe([{k: v for k, v in f.items() if k != "Marca"} for f in filas[:MOSTRAR_COBERTURA]],
                              hide_index=True, use_container_width=True)
+                if len(filas) > MOSTRAR_COBERTURA:
+                    st.caption(f"Y {len(filas) - MOSTRAR_COBERTURA} más: tocá 🔎 Filtrar, arriba, para achicar la lista.")
             if not filas:
                 sugerir(medicamento, " cobertura" + "".join(f" {k}" for k in elegidas if len(elegidas) == 1), "cobertura")
             sin_dato = [cargadas[k][0] for k in elegidas if k in cargadas and not any(f["Obra social"] == cargadas[k][0] for f in filas)]
@@ -1213,10 +1245,7 @@ if consultas.ARCHIVO.exists():
                 marcas = []
                 for _, c in todos_los_vademecum():
                     if vademecum.buscar([c], medicamento):
-                        # "TAFIROL 1 G" -> "TAFIROL": la página de Alfabeta es por marca, sin la dosis.
-                        palabras_m = (c.marca or c.producto).split()
-                        corte = next((i for i, w in enumerate(palabras_m) if i and w[0].isdigit()), len(palabras_m))
-                        m = " ".join(palabras_m[:corte])
+                        m = vademecum.marca_corta(c)  # la página de Alfabeta es por marca, sin la dosis
                         if m and m not in marcas:
                             marcas.append(m)
                 if not marcas:

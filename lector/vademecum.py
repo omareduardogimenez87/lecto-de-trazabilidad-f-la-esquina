@@ -101,9 +101,66 @@ def buscar(lista: list[Cobertura], medicamento: str, limite: int = 15) -> list[C
 
     def coincide(c: Cobertura) -> bool:
         palabras = re.findall(r"[a-z0-9]+", normalizar(f"{c.producto} {c.droga}"))
-        return all(any(p.startswith(w) or (len(w) >= 5 and _parecido(w, p) >= 0.9) for p in palabras) for w in claves)
+        return all(any(p.startswith(x) or (len(x) >= 5 and _parecido(x, p) >= 0.9)
+                       for p in palabras for x in {w, SINONIMOS.get(w, w)}) for w in claves)
 
     return [c for c in lista if coincide(c)][:limite]
+
+
+# Cómo se lo pide en el mostrador -> cómo figura en el vademécum.
+SINONIMOS = {"t4": "levotiroxina", "t3": "liotironina", "levo": "levotiroxina", "amoxi": "amoxicilina"}
+
+# Abreviaturas de la presentación -> forma farmacéutica, para los filtros.
+FORMAS = {
+    "comp": "Comprimidos", "cap": "Cápsulas", "caps": "Cápsulas", "gts": "Gotas", "jbe": "Jarabe",
+    "susp": "Suspensión", "sus": "Suspensión", "cr": "Crema", "crema": "Crema", "gel": "Gel", "pda": "Pomada",
+    "iny": "Inyectable", "amp": "Ampollas", "sol": "Solución", "sob": "Sobres", "sobres": "Sobres",
+    "parches": "Parches", "sup": "Supositorios", "colirio": "Colirio", "spray": "Spray", "emuls": "Emulsión",
+    "pvo": "Polvo", "polvo": "Polvo", "lata": "Lata", "brick": "Brick", "brik": "Brick", "botella": "Botella",
+}
+
+
+def marca_corta(c: Cobertura) -> str:
+    """"IBUPIRAC 600 MG" -> "IBUPIRAC" (la marca sin la dosis)."""
+    palabras = (c.marca or c.producto).split()
+    corte = next((i for i, w in enumerate(palabras) if i and w[0].isdigit()), len(palabras))
+    return " ".join(palabras[:corte])
+
+
+def dosis(c: Cobertura) -> str:
+    """"LEVOTIROXINA 100 mcg comp.x 50" -> "100 mcg" (no cuenta los ml del frasco)."""
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(mcg|µg|ug|mg|g|ui|%)(?![a-z])", c.producto.lower())
+    return f"{m.group(1)} {m.group(2).replace('µg', 'mcg').replace('ug', 'mcg')}" if m else ""
+
+
+def forma(c: Cobertura) -> str:
+    """"... comp.rec.x 30" -> "Comprimidos"."""
+    for w in re.findall(r"[a-z]+", normalizar(c.producto[len(c.marca):])):
+        if w in FORMAS:
+            return FORMAS[w]
+    return ""
+
+
+def variantes(lista: list[Cobertura]) -> dict[str, list[str]]:
+    """Valores distintos de cada filtro (solo los filtros con 2 o más opciones)."""
+    campos = {"Marca": marca_corta, "Dosis": dosis, "Presentación": forma, "Laboratorio": lambda c: c.laboratorio}
+    salida = {}
+    for nombre, f in campos.items():
+        valores = []
+        for c in lista:
+            v = f(c)
+            if v and v not in valores:
+                valores.append(v)
+        if len(valores) >= 2:
+            if nombre == "Dosis":
+                valores.sort(key=lambda v: (v.split()[1], float(v.split()[0].replace(",", "."))))
+            salida[nombre] = valores
+    return salida
+
+
+def filtrar(lista: list[Cobertura], elegidos: dict[str, list[str]]) -> list[Cobertura]:
+    campos = {"Marca": marca_corta, "Dosis": dosis, "Presentación": forma, "Laboratorio": lambda c: c.laboratorio}
+    return [c for c in lista if all(not v or campos[k](c) in v for k, v in elegidos.items())]
 
 
 def vocabulario(lista: list[Cobertura]) -> list[str]:
