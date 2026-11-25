@@ -313,3 +313,21 @@ def test_contrasena_de_la_app():
     at.text_input(key="clave_ingresada").input("mitre123")
     at.button[0].click().run()
     assert [t for t in at.text_input if t.key == "consulta_txt"]
+
+
+def test_producto_con_obra_social_sin_la_palabra_cobertura():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("Factor ae vale salud")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception
+    tabla = at.dataframe[0].value
+    assert set(tabla["Obra social"]) == {"Vale Salud"} and "40 %" in list(tabla["Cobertura"])
+
+
+def test_buscador_tiene_icono_de_foto_y_catalogo_destaca_oferta():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    assert any("foto_consulta" in str(getattr(u, "proto", u)) for u in at.get("file_uploader"))
+    at.text_input(key="consulta_txt").input("geniol rapida accion")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception
+    assert any("EN OFERTA" in m.value for m in at.markdown)

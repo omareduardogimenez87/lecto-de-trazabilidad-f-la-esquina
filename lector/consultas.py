@@ -264,14 +264,20 @@ FUENTES_COBERTURA = {
 _DESCARTAR = ("de", "del", "la", "el", "en", "salud", "para")
 
 
-def medicamento_de_cobertura(pregunta: str, fuentes_q: dict | None = None) -> tuple[str, list[str]] | None:
+def medicamento_de_cobertura(pregunta: str, fuentes_q: dict | None = None,
+                             con_fuente: bool = False) -> tuple[str, list[str]] | None:
     """"clinal cobertura vale salud" -> ("clinal", ["vale"]). Sin fuente nombrada -> todas.
 
+    Con con_fuente=True también vale sin la palabra "cobertura" si se nombra la obra social:
+    "factor ae vale salud" -> ("factor ae", ["vale"]). La app solo lo usa si el producto
+    está en el vademécum, para no confundir consultas como "pami recetas".
     None si no pregunta por cobertura.
     """
     todas = {**FUENTES_COBERTURA, **(fuentes_q or {})}
     palabras_q = pregunta.split()
-    if not any(normalizar(w).startswith(PALABRAS_COBERTURA) for w in palabras_q):
+    pide = any(normalizar(w).startswith(PALABRAS_COBERTURA) for w in palabras_q)
+    nombra = con_fuente and any(normalizar(w) in claves for w in palabras_q for claves in todas.values())
+    if not (pide or nombra):
         return None
     fuentes, resto = [], []
     for w in palabras_q:
