@@ -958,8 +958,9 @@ ETIQUETA_OFERTA = ('<span style="display:inline-block; margin-top:.25rem; backgr
                    'font-weight:800; font-size:1.05rem; letter-spacing:.03em; padding:.2rem .7rem; '
                    'border-radius:999px; box-shadow:0 1px 3px rgba(0,0,0,.25);">🏷️ EN OFERTA</span>')
 MINIATURAS_MAX = 5  # fotos por búsqueda (las primeras), para que cargue rápido
-# Fotos desde la tienda web: prendidas salvo que en Secrets diga  fotos_tienda = false
-FOTOS_TIENDA = str(secretos().get("fotos_tienda", True)).strip().lower() not in ("false", "0", "no")
+# Fotos desde la tienda web: apagadas (la tienda no tiene una búsqueda pública que devuelva fotos;
+# probado el 25/11/2026). Se prenden en Secrets con  fotos_tienda = true  si eso cambia.
+FOTOS_TIENDA = str(secretos().get("fotos_tienda", False)).strip().lower() in ("true", "1", "si", "sí")
 
 
 @st.cache_data(ttl=7 * 24 * 3600, show_spinner=False)
