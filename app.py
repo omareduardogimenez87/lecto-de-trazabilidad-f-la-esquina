@@ -986,25 +986,32 @@ SECCIONES_CON_BOTON = ()  # ninguna sección del .md tiene botón (pedido de Edu
 ESTILO_BUSCADOR = """
 <style>
 /* Caja de texto y botón 🔎 en la misma línea, también en el celular; sin el cartel "Press Enter". */
-.st-key-buscador [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: .4rem; align-items: center; }
+.st-key-buscador [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: .3rem; align-items: center; }
 .st-key-buscador [data-testid="stColumn"]:first-child { flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; }
-.st-key-buscador [data-testid="stColumn"]:last-child { flex: 0 0 3rem !important; min-width: 3rem !important; width: 3rem !important; }
+.st-key-buscador [data-testid="stColumn"]:last-child { flex: 0 0 2.2rem !important; min-width: 2.2rem !important; width: 2.2rem !important; }
 .st-key-buscador [data-testid="InputInstructions"] { display: none !important; }
-.st-key-buscador [data-testid="stFormSubmitButton"] button { min-height: 2.6rem; padding: 0; font-size: 1.2rem; }
+/* Cuadro de búsqueda más grande y los íconos 🔎 🎤 📷 más compactos (pedido de Edu). */
+.st-key-buscador input { min-height: 3rem; font-size: 1.05rem !important; }
+.st-key-encabezado_asistente [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; align-items: flex-start; }
+.st-key-encabezado_asistente [data-testid="stColumn"]:first-child { flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; }
+.st-key-encabezado_asistente [data-testid="stColumn"]:last-child { flex: 0 0 2.2rem !important; min-width: 2.2rem !important; width: 2.2rem !important; }
+.st-key-encabezado_asistente [data-testid="stPopover"] button { min-height: 2rem; height: 2rem; width: 2.2rem; padding: 0; border-radius: 50%; }
+.st-key-encabezado_asistente [data-testid="stPopover"] button [data-testid="stIconMaterial"] { display: none; }
+.st-key-buscador [data-testid="stFormSubmitButton"] button { min-height: 3rem; padding: 0; font-size: 1.05rem; }
 /* Fila del buscador: [caja + 🔎] y al lado el 📷 para consultar con foto. */
-.st-key-fila_buscar [data-testid="stHorizontalBlock"]:has(.st-key-foto_consulta) { flex-wrap: nowrap !important; gap: .4rem; align-items: center; }
+.st-key-fila_buscar [data-testid="stHorizontalBlock"]:has(.st-key-foto_consulta) { flex-wrap: nowrap !important; gap: .3rem; align-items: center; }
 .st-key-fila_buscar [data-testid="stColumn"]:has(.st-key-buscador) { flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; }
-.st-key-fila_buscar [data-testid="stColumn"]:has(.st-key-foto_consulta) { flex: 0 0 3rem !important; min-width: 3rem !important; width: 3rem !important; }
+.st-key-fila_buscar [data-testid="stColumn"]:has(.st-key-foto_consulta) { flex: 0 0 2.2rem !important; min-width: 2.2rem !important; width: 2.2rem !important; }
 .st-key-foto_consulta [data-testid="stFileUploaderDropzoneInstructions"],
 .st-key-foto_consulta [data-testid="stFileChip"], .st-key-foto_consulta [data-testid="stFileUploaderFile"] { display: none !important; }
 .st-key-foto_consulta section { padding: 0; background: transparent; border: none; display: block; min-height: 0; }
 .st-key-foto_consulta section > span, .st-key-foto_consulta section button { display: block !important; width: 100% !important; max-width: none; }
-.st-key-foto_consulta section button { min-height: 2.6rem; padding: 0; font-size: 0 !important; border-radius: .5rem; }
+.st-key-foto_consulta section button { min-height: 3rem; padding: 0; font-size: 0 !important; border-radius: .5rem; }
 .st-key-foto_consulta section button * { display: none !important; }
-.st-key-foto_consulta section button::before { content: "📷"; font-size: 1.2rem; }
+.st-key-foto_consulta section button::before { content: "📷"; font-size: 1.05rem; }
 /* 🎤 entre la 🔎 y la 📷: orden lupa, micrófono, cámara (pedido de Edu). */
-.boton-voz { flex: 0 0 3rem; width: 3rem; min-width: 3rem; height: 2.6rem; border: 1px solid rgba(49,51,63,.2);
-  border-radius: .5rem; background: #fff; font-size: 1.2rem; cursor: pointer; padding: 0; line-height: 1; align-self: center; }
+.boton-voz { flex: 0 0 2.2rem; width: 2.2rem; min-width: 2.2rem; height: 3rem; border: 1px solid rgba(49,51,63,.2);
+  border-radius: .5rem; background: #fff; font-size: 1.05rem; cursor: pointer; padding: 0; line-height: 1; align-self: center; }
 .boton-voz.escuchando { animation: latido 1s infinite; background: #fde8e8; }
 @keyframes latido { 50% { transform: scale(1.15); } }
 </style>
@@ -1191,17 +1198,20 @@ if consultas.ARCHIVO.exists():
         # Encabezado con el ayudante: la cruz pixelada con ojitos (el ícono de la app), más grande y amigable.
         avatar = (f'<img src="data:image/png;base64,{en_base64(ICONO_APP)}" alt="" style="height:3rem; width:3rem; '
                   f'image-rendering:pixelated; background:#f4f7e1; border-radius:50%; padding:.3rem;">') if ICONO_APP.exists() else "🤖"
-        st.markdown(
-            f'<div style="display:flex; align-items:center; gap:.7rem; margin-bottom:.2rem;">{avatar}'
-            f'<div><div style="font-size:1.2rem; font-weight:700; line-height:1.2;">{TITULO_AYUDANTE}</div>'
-            f'<div style="font-size:.85rem; color:#6b6b6b;">Consultas rápidas y ayuda de la app</div></div></div>',
-            unsafe_allow_html=True,
-        )
-        # La ayuda va cerrada en un desplegable: lo principal es el buscador (pedido de Edu).
-        with st.expander("❓ ¿Cómo se usa?"):
-            st.caption("Escribí una palabra o el número del código y tocá 🔎 o Enter (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
-                       "quién trabaja hoy). Con 🎤 lo dictás. Con 📷 sacás una foto del producto o de su código de barras y lo busca solo. "
-                       "Para los cajones sirve aunque esté mal escrito.")
+        # Encabezado: título a la izquierda y la ayuda chiquita (❓) arriba a la derecha (pedido de Edu).
+        with st.container(key="encabezado_asistente"):
+            col_tit, col_ayuda = st.columns([8, 1])
+            col_tit.markdown(
+                f'<div style="display:flex; align-items:center; gap:.7rem; margin-bottom:.2rem;">{avatar}'
+                f'<div><div style="font-size:1.2rem; font-weight:700; line-height:1.2;">{TITULO_AYUDANTE}</div>'
+                f'<div style="font-size:.85rem; color:#6b6b6b;">Consultas rápidas y ayuda de la app</div></div></div>',
+                unsafe_allow_html=True,
+            )
+            with col_ayuda.popover("❓", help="¿Cómo se usa?"):
+                st.markdown("**¿Cómo se usa?**")
+                st.caption("Escribí una palabra o el número del código y tocá 🔎 o Enter (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
+                           "quién trabaja hoy). Con 🎤 lo dictás. Con 📷 sacás una foto del producto o de su código de barras y lo busca solo. "
+                           "Para los cajones sirve aunque esté mal escrito.")
         # Buscador: se escribe y se busca con Enter o con el botón 🔎. El 🎤 (si el navegador lo permite)
         # dicta la búsqueda por voz. Va en un formulario para que busque solo al confirmar.
         st.markdown(ESTILO_BUSCADOR, unsafe_allow_html=True)
@@ -1214,7 +1224,7 @@ if consultas.ARCHIVO.exists():
                 with st.form("form_buscar", border=False):
                     col_txt, col_btn = st.columns([6, 1])
                     pregunta = col_txt.text_input("Buscar", key="consulta_txt", label_visibility="collapsed",
-                                                  placeholder="Escribí, dictá o sacá una foto...")
+                                                  placeholder="Buscar...")
                     col_btn.form_submit_button("🔎", key="btn_buscar", use_container_width=True, help="Buscar")
             # 📷 Consultar con foto: código de barras (exacto) o, si no se ve, el nombre impreso en el envase (OCR).
             with col_foto, st.container(key="foto_consulta"):
@@ -1285,7 +1295,7 @@ if consultas.ARCHIVO.exists():
 
         st.markdown(
             "<style>.st-key-categorias [data-testid='stButtonGroup'] button p { font-size: .95rem !important; }"
-            ".st-key-categorias [data-testid='stButtonGroup'] button { min-height: 2.4rem; padding: .3rem .5rem !important; }</style>",
+            ".st-key-categorias [data-testid='stButtonGroup'] button { min-height: 2.2rem; padding: .3rem .5rem !important; }</style>",
             unsafe_allow_html=True,
         )
         # Botones de categoría (pedido de Edu: solo estos). El resto se encuentra escribiendo en el buscador.
@@ -1375,8 +1385,8 @@ if consultas.ARCHIVO.exists():
                         m = vademecum.marca_corta(c)  # la página de Alfabeta es por marca, sin la dosis
                         if m and m not in marcas:
                             marcas.append(m)
-                if not marcas:
-                    marcas = [medicamento]
+                if not marcas:  # "tafirol 1g" -> "tafirol": Alfabeta no tiene página con la dosis
+                    marcas = [vademecum.marca_corta(vademecum.Cobertura(medicamento, "", "", ""))]
                 for m in marcas[:4]:
                     s_m = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(m)))
                     st.link_button(f"PAMI (Alfabeta): {m.upper()}", f"https://www.alfabeta.net/precio/{s_m}.html",
