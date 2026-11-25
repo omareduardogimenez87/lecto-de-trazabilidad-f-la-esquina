@@ -1100,7 +1100,7 @@ def fichas_de_vademecum(pregunta: str, maximo: int = 5) -> bool:
         c = filas[0][1]
         coberturas = " · ".join(f"{n} {x.porcentaje}" for n, x in filas)
         st.markdown(f"💊 **{producto}**  \n🏭 {c.laboratorio or '—'} · 🧪 Droga: {c.droga or '—'}"
-                    + (f" · Código {c.codigo}" if c.codigo else "") + f"  \n🩺 Cobertura: {coberturas}"
+                    + (f" · Código {c.codigo}" if c.codigo else "") + f"  \n:green[**🩺 Cobertura: {coberturas}**]"
                     + f" · [📷 Ver foto](https://www.google.com/search?tbm=isch&q={quote(producto + ' ' + c.laboratorio)})")
     if len(por_producto) > maximo:
         st.caption(f"…y {len(por_producto) - maximo} presentaciones más en el vademécum.")
@@ -1230,7 +1230,12 @@ if consultas.ARCHIVO.exists():
             filas = [{"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
                       "Laboratorio": c.laboratorio, "Droga": c.droga, "Marca": c.marca} for nombre, c in pares]
             if filas:
-                st.dataframe([{k: v for k, v in f.items() if k != "Marca"} for f in filas[:MOSTRAR_COBERTURA]],
+                import pandas as pd
+
+                tabla_cob = pd.DataFrame([{k: v for k, v in f.items() if k != "Marca"} for f in filas[:MOSTRAR_COBERTURA]])
+                # La cobertura en verde, para que se distinga del resto (pedido de Edu).
+                st.dataframe(tabla_cob.style.map(lambda _: "color: #1e7b34; font-weight: 700; background-color: #e6f4ea",
+                                                 subset=["Cobertura"]),
                              hide_index=True, use_container_width=True)
                 if len(filas) > MOSTRAR_COBERTURA:
                     st.caption(f"Y {len(filas) - MOSTRAR_COBERTURA} más: tocá 🔎 Filtrar, arriba, para achicar la lista.")
