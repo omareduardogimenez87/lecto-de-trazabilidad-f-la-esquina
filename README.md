@@ -154,3 +154,10 @@ La app arma una tabla **obra social → %** con cada vademécum cargado en `cons
 
 ### Padrón OSDOP por DNI
 Escribir **"dni 12345678"** (u "osdop 12345678"): la app dice si figura en **OSDOP**, **OSDOP Monotributo** o **Cobertura especial (crónico)**, o que no figura. En el repo solo hay `consultas/padron_osdop.json` con un código de cada DNI (HMAC con la clave `padron_clave` de Secrets): sin nombres, domicilios, fechas ni enfermedades. Los Excel del padrón **no se suben nunca** al repo. Cada mes se arma de nuevo con `herramientas/armar_padron.py` (o pidiéndoselo a Claude con los 3 Excel).
+
+### Contraseña para entrar
+Si en Secrets está `clave_app = "..."`, la app pide esa contraseña antes de mostrar nada (una vez por sesión del navegador). Para sacarla, se borra la línea. Para cambiarla, se cambia el texto. Después de cualquier cambio: Save y Reiniciar aplicación.
+
+### Médicos y convenio ISSPSE
+- **"matricula 2911"**, **"dr abalos"** o **"medico abalos"**: nombre y matrícula del médico (`consultas/Matriculas_Medicos.xlsx`), con ✅ si está en el convenio ISSPSE (descuento extra) o 🟡 si es probable.
+- **"isspse 12345678"** (o "dni ..."): confirma por DNI si está en el convenio. Del listado ISSPSE solo se guarda un código de cada DNI en `consultas/padron_isspse.json` (misma clave `padron_clave`), sin nombres.

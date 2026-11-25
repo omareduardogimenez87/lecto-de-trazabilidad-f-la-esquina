@@ -25,13 +25,13 @@ from urllib.parse import quote
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import ayuda, cajones, catalogo, consultas, ofertas, padron, precios, registro, vademecum
+from lector import ayuda, cajones, catalogo, consultas, matriculas, ofertas, padron, precios, registro, vademecum
 
 # Streamlit Cloud a veces deja cargada la versión vieja de estos módulos después de un merge
 # (y aparece un AttributeError hasta hacer "Reboot app"). Si el archivo cambió, se vuelve a cargar.
 import importlib
 
-for _modulo in (consultas, ofertas, precios, cajones, catalogo, ayuda, vademecum, padron):
+for _modulo in (consultas, ofertas, precios, cajones, catalogo, ayuda, vademecum, padron, matriculas):
     _cambio = Path(_modulo.__file__).stat().st_mtime
     if getattr(_modulo, "_version_cargada", None) != _cambio:
         importlib.reload(_modulo)
@@ -185,6 +185,23 @@ def secretos() -> dict:
 # Botón "Escanear código o producto" del Asistente. Apagado hasta tener los códigos cargados;
 # se prende en Secrets con  escaneo_activo = true  (el código del lector queda intacto).
 ESCANEO_ACTIVO = str(secretos().get("escaneo_activo", False)).strip().lower() in ("true", "1", "si", "sí")
+
+# Contraseña para entrar a la app (pedido de Edu, 24/11/2026). Se activa poniendo en Secrets
+#   clave_app = "la-clave"
+# Sin esa línea la app abre como siempre. Se pide una vez por sesión del navegador.
+CLAVE_APP = str(secretos().get("clave_app", "")).strip()
+if CLAVE_APP and not st.session_state.get("entro"):
+    with st.form("form_clave", border=True):
+        st.markdown("🔒 **Ingresá la contraseña de la app**")
+        escrita = st.text_input("Contraseña", type="password", key="clave_ingresada")
+        if st.form_submit_button("Entrar", type="primary", use_container_width=True):
+            import hmac as _hmac
+
+            if _hmac.compare_digest(escrita.strip(), CLAVE_APP):
+                st.session_state["entro"] = True
+                st.rerun()
+            st.error("Contraseña incorrecta.")
+    st.stop()
 
 
 @st.cache_resource(show_spinner="Conectando con la planilla de registros…")
@@ -897,6 +914,11 @@ def vademecum_cargado(ruta: str, _modificado: float):
 
 
 @st.cache_data(show_spinner=False)
+def lista_de_medicos(_modificado: float):
+    return matriculas.leer()
+
+
+@st.cache_data(show_spinner=False)
 def mapa_de_cajones(_modificado: float):
     return cajones.leer() if cajones.ARCHIVO.exists() else []
 
@@ -1126,20 +1148,34 @@ if consultas.ARCHIVO.exists():
             etiquetas.append(CAJONES_ETIQUETA)
         with st.container(key="categorias"):
             categoria = st.pills("Categorías", etiquetas, key="consulta_cat", label_visibility="collapsed")
+        if pregunta.strip() and matriculas.es_consulta(pregunta) and matriculas.ARCHIVO.exists():
+            # "matricula 2911" o "dr abalos": médicos de la provincia (para verificar la receta).
+            medicos = matriculas.buscar(lista_de_medicos(matriculas.ARCHIVO.stat().st_mtime), pregunta)
+            if medicos:
+                marca = {"Sí": " · ✅ **Convenio ISSPSE** (descuento extra)",
+                         "Probable": " · 🟡 Convenio ISSPSE probable: confirmá con \"dni\" y su número"}
+                st.markdown("\n".join(f"- 👨‍⚕️ **{m.nombre}** · Matrícula **{m.matricula}**{marca.get(m.isspse, '')}"
+                                       for m in medicos))
+                st.caption("Si no dice convenio, igual puede estar con el nombre escrito distinto: "
+                           "confirmalo escribiendo \"isspse\" y su DNI.")
+            else:
+                st.info("👨‍⚕️ No encontré ese médico o matrícula en el listado de la provincia.")
+            pregunta = ""
         dni = padron.dni_de_la_pregunta(pregunta) if pregunta.strip() else None
         if dni:
             # "dni 25333620": solo dice en qué lista de OSDOP figura (sin nombre ni enfermedad).
             datos_padron, clave = padron.leer(), str(secretos().get("padron_clave", ""))
             if not datos_padron or not clave:
-                st.info("🪪 El padrón de OSDOP todavía no está cargado.")
+                st.info("🪪 Los padrones (OSDOP, ISSPSE) todavía no están cargados.")
             else:
                 listas = padron.consultar(datos_padron, dni, clave)
                 mes = datos_padron.get("mes", "")
                 if listas:
-                    nombres = [("Cobertura especial (crónico)" if l == "Cobertura especial" else l) for l in listas]
+                    nombres = [{"Cobertura especial": "Cobertura especial (crónico)",
+                                "ISSPSE": "convenio ISSPSE (descuento extra)"}.get(l, l) for l in listas]
                     st.success(f"🪪 DNI {dni}: figura en **{' · '.join(nombres)}**" + (f" (padrón {mes})" if mes else ""))
                 else:
-                    st.warning(f"🪪 DNI {dni}: **no figura** en el padrón de OSDOP" + (f" ({mes})" if mes else "") + ".")
+                    st.warning(f"🪪 DNI {dni}: **no figura** en los padrones cargados (OSDOP, ISSPSE)" + (f", {mes}" if mes else "") + ".")
             pregunta = ""  # no buscar el número en el resto de la base
         cargadas = vademecum.fuentes()  # {"vale": ("Vale Salud", ruta)}
         cobertura = (consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas})

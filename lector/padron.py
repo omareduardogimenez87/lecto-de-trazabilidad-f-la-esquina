@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 
 ARCHIVO = Path(__file__).resolve().parent.parent / "consultas" / "padron_osdop.json"
-LISTAS = ("OSDOP", "OSDOP Monotributo", "Cobertura especial")
+LISTAS = ("OSDOP", "OSDOP Monotributo", "Cobertura especial", "ISSPSE")
 
 
 def codigo(dni: str, clave: str) -> str:
@@ -24,13 +24,22 @@ def codigo(dni: str, clave: str) -> str:
 
 
 def leer(archivo: Path = ARCHIVO) -> dict:
-    return json.loads(archivo.read_text(encoding="utf-8")) if archivo.exists() else {}
+    """Junta todos los consultas/padron_*.json (OSDOP, ISSPSE...). Con archivo distinto, solo ese."""
+    rutas = sorted(archivo.parent.glob("padron_*.json")) if archivo == ARCHIVO else [archivo]
+    junto: dict = {"listas": {}, "meses": {}}
+    for ruta in rutas:
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        for nombre, codigos in datos.get("listas", {}).items():
+            junto["listas"][nombre] = codigos
+            junto["meses"][nombre] = datos.get("mes", "")
+        junto.setdefault("mes", datos.get("mes", ""))
+    return junto if junto["listas"] else {}
 
 
 def dni_de_la_pregunta(pregunta: str) -> str | None:
     """"dni 25333620" u "osdop 25.333.620" -> "25333620". Solo si dice dni u osdop."""
     texto = pregunta.lower()
-    if "dni" not in texto and "osdop" not in texto:
+    if "dni" not in texto and "osdop" not in texto and "isspse" not in texto:
         return None
     m = re.search(r"\b(\d{1,2}\.?\d{3}\.?\d{3})\b", texto)
     return m.group(1).replace(".", "") if m else None
