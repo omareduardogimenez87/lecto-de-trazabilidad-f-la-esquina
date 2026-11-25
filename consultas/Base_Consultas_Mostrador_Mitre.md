@@ -362,6 +362,7 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 | Leval | 20 % | +35471 | 30/10/2026 | ⚠️ sin fecha informada | Cargada en sistema | ✅ |
 | Ph Lágrimas | 20 % | +35644 | 30/10/2026 | ⚠️ sin fecha informada | Cargada en sistema | ✅ |
 | Secufem | 50 % | +35719 | 30/10/2026 | ⚠️ sin fecha informada | Exhibir en góndola | ✅ |
+| Sertal Compuesto VL x10 y x20 comp. (aviso de Germán, ROC) | 25 % | ⚠️ sin código informado | 25/11/2026 | **31/01/2027** (fin de enero) | Se activa con el stock actual hasta que llegue el pedido | ✅ |
 | Tridigestivo | 50 % | +152001 | 30/10/2026 | ⚠️ sin fecha informada | Exhibir en góndola | ✅ |
 | Té Decidex Grip | 50 % | +160603 | 30/10/2026 | ⚠️ sin fecha informada | Exhibir en góndola | ✅ |
 

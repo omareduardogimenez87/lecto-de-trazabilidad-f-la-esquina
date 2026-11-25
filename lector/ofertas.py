@@ -146,13 +146,15 @@ def leer(archivo: Path = ARCHIVO) -> list[Oferta]:
     for fila in filas[inicio:]:
         codigo = solo_digitos(dato(fila, "codigo"))
         producto = str(dato(fila, "producto") or "").strip()
-        if not codigo or not producto:
+        id_ = str(dato(fila, "id") or "").strip()
+        # Sin código de barras igual sirve si tiene Id (SKU) o fecha "Hasta" (ej. Sertal Compuesto x20).
+        if not producto or not (codigo or id_ or dato(fila, "hasta")):
             continue
         descuento = _a_numero(dato(fila, "descuento"))
         if descuento is not None and descuento > 1:  # escrito como 40 en vez de 40 %
             descuento /= 100
         ofertas.append(Oferta(
-            id=str(dato(fila, "id") or "").strip(),
+            id=id_,
             producto=producto,
             presentacion=str(dato(fila, "presentacion") or "").strip(),
             codigo=codigo,
