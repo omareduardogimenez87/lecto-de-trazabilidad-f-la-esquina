@@ -315,6 +315,13 @@ def test_contrasena_de_la_app():
     assert [t for t in at.text_input if t.key == "consulta_txt"]
 
 
+def test_aviso_isspse_al_buscar_medico_con_convenio():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("medico abalos")
+    at.button(key="btn_buscar").click().run()
+    assert any("imprimí la **validación**" in w.value for w in at.warning)
+
+
 def test_producto_con_obra_social_sin_la_palabra_cobertura():
     at = AppTest.from_file(APP, default_timeout=60).run()
     at.text_input(key="consulta_txt").input("Factor ae vale salud")

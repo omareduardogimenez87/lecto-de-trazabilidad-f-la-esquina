@@ -11,3 +11,14 @@ def test_lee_csv_y_busca_por_nombre(tmp_path):
     assert c.laboratorio == "Andrómaco" and c.porcentaje == "20 %"
     assert vademecum.buscar(lista, "tafirol")[0].porcentaje == "40 %"
     assert vademecum.buscar(lista, "rexona") == []
+
+
+def test_accion_terapeutica_solo_del_archivo(tmp_path):
+    from lector import accion
+
+    archivo = tmp_path / "Accion_Terapeutica.csv"
+    archivo.write_text("droga;accion;fuente\npropinox;Antiespasmódico;Alfabeta\n", encoding="utf-8")
+    tabla = accion.leer(archivo)
+    assert accion.de_la_droga(tabla, "Propinox")["accion"] == "Antiespasmódico"
+    assert accion.de_la_droga(tabla, "ibuprofeno") is None  # sin dato: no se inventa
+    assert accion.leer(tmp_path / "no_existe.csv") == {}

@@ -25,7 +25,7 @@ from urllib.parse import quote
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import ayuda, cajones, catalogo, consultas, foto_consulta, matriculas, miniaturas, ofertas, padron, precios, registro, vademecum
+from lector import accion, ayuda, cajones, catalogo, consultas, foto_consulta, matriculas, miniaturas, ofertas, padron, precios, registro, vademecum
 
 # Streamlit Cloud a veces deja cargada la versión vieja de estos módulos después de un merge
 # (y aparece un AttributeError hasta hacer "Reboot app"). Si el archivo cambió, se vuelve a cargar.
@@ -185,6 +185,9 @@ def secretos() -> dict:
 # Botón "Escanear código o producto" del Asistente. Apagado hasta tener los códigos cargados;
 # se prende en Secrets con  escaneo_activo = true  (el código del lector queda intacto).
 ESCANEO_ACTIVO = str(secretos().get("escaneo_activo", False)).strip().lower() in ("true", "1", "si", "sí")
+
+AVISO_ISSPSE = ("🧾 **ISSPSE (indicación de Germán, ROC):** en **mostrador** imprimí la **validación**; en **caja/perfumería**, "
+                "una **copia de la factura**. Adjuntala con las **recetas diarias** para auditoría.")
 
 # Contraseña para entrar a la app (pedido de Edu, 24/11/2026). Se activa poniendo en Secrets
 #   clave_app = "la-clave"
@@ -988,7 +991,6 @@ ESTILO_BUSCADOR = """
 .st-key-buscador [data-testid="stColumn"]:last-child { flex: 0 0 3rem !important; min-width: 3rem !important; width: 3rem !important; }
 .st-key-buscador [data-testid="InputInstructions"] { display: none !important; }
 .st-key-buscador [data-testid="stFormSubmitButton"] button { min-height: 2.6rem; padding: 0; font-size: 1.2rem; }
-.st-key-buscador input { padding-right: 2.6rem !important; }
 /* Fila del buscador: [caja + 🔎] y al lado el 📷 para consultar con foto. */
 .st-key-fila_buscar [data-testid="stHorizontalBlock"]:has(.st-key-foto_consulta) { flex-wrap: nowrap !important; gap: .4rem; align-items: center; }
 .st-key-fila_buscar [data-testid="stColumn"]:has(.st-key-buscador) { flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; }
@@ -1000,10 +1002,11 @@ ESTILO_BUSCADOR = """
 .st-key-foto_consulta section button { min-height: 2.6rem; padding: 0; font-size: 0 !important; border-radius: .5rem; }
 .st-key-foto_consulta section button * { display: none !important; }
 .st-key-foto_consulta section button::before { content: "📷"; font-size: 1.2rem; }
-.boton-voz { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); border: none; background: transparent;
-  font-size: 1.25rem; cursor: pointer; z-index: 5; padding: .2rem; line-height: 1; }
-.boton-voz.escuchando { animation: latido 1s infinite; }
-@keyframes latido { 50% { transform: translateY(-50%) scale(1.25); } }
+/* 🎤 entre la 🔎 y la 📷: orden lupa, micrófono, cámara (pedido de Edu). */
+.boton-voz { flex: 0 0 3rem; width: 3rem; min-width: 3rem; height: 2.6rem; border: 1px solid rgba(49,51,63,.2);
+  border-radius: .5rem; background: #fff; font-size: 1.2rem; cursor: pointer; padding: 0; line-height: 1; align-self: center; }
+.boton-voz.escuchando { animation: latido 1s infinite; background: #fde8e8; }
+@keyframes latido { 50% { transform: scale(1.15); } }
 </style>
 """
 
@@ -1016,8 +1019,8 @@ const win = window.parent;
 const Reconocer = win.SpeechRecognition || win.webkitSpeechRecognition;
 function poner() {
   const caja = doc.querySelector('.st-key-buscador input');
-  if (!Reconocer || !caja || caja.parentElement.querySelector('.boton-voz')) return;
-  caja.parentElement.style.position = 'relative';
+  const colBuscar = doc.querySelector('.st-key-fila_buscar [data-testid="stColumn"]:has(.st-key-buscador)');
+  if (!Reconocer || !caja || !colBuscar || doc.querySelector('.boton-voz')) return;
   const b = doc.createElement('button');
   b.type = 'button'; b.className = 'boton-voz'; b.textContent = '🎤'; b.title = 'Dictar por voz';
   b.onclick = () => {
@@ -1034,7 +1037,7 @@ function poner() {
     r.onerror = () => b.classList.remove('escuchando');
     r.start();
   };
-  caja.parentElement.appendChild(b);
+  colBuscar.after(b);  // queda entre la 🔎 y la 📷
 }
 poner();
 new MutationObserver(poner).observe(doc.body, {childList: true, subtree: true});
@@ -1106,24 +1109,72 @@ def sugerir(texto: str, sufijo: str = "", lugar: str = "general") -> None:
             st.rerun()
 
 
+TOPE_VARIANTES = 300  # cuántos renglones del vademécum se juntan antes de filtrar
+MOSTRAR_COBERTURA = 15  # renglones de la tabla de cobertura
+
+
+def filtros_de_variantes(pares: list, clave: str, desde: int = 5) -> list:
+    """Si la búsqueda trae muchas variantes ("t4 levo"), filtros para tildar: marca, dosis, presentación y laboratorio.
+
+    Las opciones salen solo de lo que encontró esa búsqueda. Sin nada tildado, muestra todo.
+    """
+    lista = [c for _, c in pares]
+    opciones = vademecum.variantes(lista)
+    if len(pares) < desde or not opciones:
+        return pares
+    elegidos = {}
+    with st.expander(f"🔎 Filtrar las {len(pares)} variantes ({', '.join(opciones).lower()})"):
+        for nombre, valores in opciones.items():
+            elegidos[nombre] = st.pills(nombre, valores, selection_mode="multi",
+                                        key=f"filtro_{clave}_{nombre}") or []
+    if not any(elegidos.values()):
+        return pares
+    quedan = {id(c) for c in vademecum.filtrar(lista, elegidos)}
+    pares = [(n, c) for n, c in pares if id(c) in quedan]
+    if not pares:
+        st.caption("Ninguna variante tiene todo lo tildado: destildá algún filtro.")
+    return pares
+
+
 def fichas_de_vademecum(pregunta: str, maximo: int = 5) -> bool:
     """Datos del producto que figuran en los vademécums (laboratorio, droga, presentación, cobertura).
 
     No se muestra para qué sirve ni dosis: eso lo responde la farmacéutica (regla de la app).
     """
+    pares = [(nombre, c) for nombre, c in todos_los_vademecum() if vademecum.buscar([c], pregunta)]
+    pares = filtros_de_variantes(pares, f"ficha_{consultas.normalizar(pregunta)}")
     por_producto: dict[str, list] = {}
-    for nombre, c in todos_los_vademecum():
-        if vademecum.buscar([c], pregunta):
-            por_producto.setdefault(c.producto, []).append((nombre, c))
+    for nombre, c in pares:
+        por_producto.setdefault(c.producto, []).append((nombre, c))
     for producto, filas in list(por_producto.items())[:maximo]:
         c = filas[0][1]
         coberturas = " · ".join(f"{n} {x.porcentaje}" for n, x in filas)
         st.markdown(f"💊 **{producto}**  \n🏭 {c.laboratorio or '—'} · 🧪 Droga: {c.droga or '—'}"
-                    + (f" · Código {c.codigo}" if c.codigo else "") + f"  \n🩺 Cobertura: {coberturas}"
-                    + f" · [📷 Ver foto](https://www.google.com/search?tbm=isch&q={quote(producto + ' ' + c.laboratorio)})")
+                    + (f" · Código {c.codigo}" if c.codigo else "") + f"  \n:green[**🩺 Cobertura: {coberturas}**]"
+                    + f" · [📷 Ver foto](https://www.google.com/search?tbm=isch&q={quote(producto + ' ' + c.laboratorio)})"
+                    + f"  \n{linea_accion(c)}")
     if len(por_producto) > maximo:
         st.caption(f"…y {len(por_producto) - maximo} presentaciones más en el vademécum.")
+    if por_producto:
+        st.caption(f"💡 {accion.AVISO}")
     return bool(por_producto)
+
+
+@st.cache_data(show_spinner=False)
+def tabla_de_acciones(_mtime: float) -> dict:
+    return accion.leer()
+
+
+def linea_accion(c) -> str:
+    """Acción terapéutica solo si está en el archivo con fuente; si no, "sin dato" y el link a Alfabeta."""
+    dato = accion.de_la_droga(tabla_de_acciones(accion.ARCHIVO.stat().st_mtime if accion.ARCHIVO.exists() else 0), c.droga)
+    if dato:
+        texto = f"💡 Acción terapéutica: **{dato['accion']}**"
+        if dato.get("indicacion"):
+            texto += f" · Suele indicarse para: {dato['indicacion']}"
+        return texto + (f" _(fuente: {dato['fuente']})_" if dato.get("fuente") else "")
+    s_m = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(vademecum.marca_corta(c))))
+    return f"💡 Acción terapéutica: sin dato · [ver en Alfabeta](https://www.alfabeta.net/precio/{s_m}.html)"
 
 
 if consultas.ARCHIVO.exists():
@@ -1146,9 +1197,11 @@ if consultas.ARCHIVO.exists():
             f'<div style="font-size:.85rem; color:#6b6b6b;">Consultas rápidas y ayuda de la app</div></div></div>',
             unsafe_allow_html=True,
         )
-        st.caption("Escribí (o dictá con 🎤) una palabra o el número del código y tocá 🔎 o Enter (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
-                   "quién trabaja hoy). Con 📷 sacás una foto del producto o de su código de barras y lo busca solo. "
-                   "Para los cajones sirve aunque esté mal escrito.")
+        # La ayuda va cerrada en un desplegable: lo principal es el buscador (pedido de Edu).
+        with st.expander("❓ ¿Cómo se usa?"):
+            st.caption("Escribí una palabra o el número del código y tocá 🔎 o Enter (ej.: OSDE, Galeno, Tafirol, ibuprofeno, Ctrl+V, "
+                       "quién trabaja hoy). Con 🎤 lo dictás. Con 📷 sacás una foto del producto o de su código de barras y lo busca solo. "
+                       "Para los cajones sirve aunque esté mal escrito.")
         # Buscador: se escribe y se busca con Enter o con el botón 🔎. El 🎤 (si el navegador lo permite)
         # dicta la búsqueda por voz. Va en un formulario para que busque solo al confirmar.
         st.markdown(ESTILO_BUSCADOR, unsafe_allow_html=True)
@@ -1251,6 +1304,8 @@ if consultas.ARCHIVO.exists():
                          "Probable": " · 🟡 Convenio ISSPSE probable: confirmá con \"dni\" y su número"}
                 st.markdown("\n".join(f"- 👨‍⚕️ **{m.nombre}** · Matrícula **{m.matricula}**{marca.get(m.isspse, '')}"
                                        for m in medicos))
+                if any(m.isspse for m in medicos):
+                    st.warning(AVISO_ISSPSE)
                 st.caption("Si no dice convenio, igual puede estar con el nombre escrito distinto: "
                            "confirmalo escribiendo \"isspse\" y su DNI.")
             else:
@@ -1269,6 +1324,8 @@ if consultas.ARCHIVO.exists():
                     nombres = [{"Cobertura especial": "Cobertura especial (crónico)",
                                 "ISSPSE": "convenio ISSPSE (descuento extra)"}.get(l, l) for l in listas]
                     st.success(f"🪪 DNI {dni}: figura en **{' · '.join(nombres)}**" + (f" (padrón {mes})" if mes else ""))
+                    if "ISSPSE" in listas:
+                        st.warning(AVISO_ISSPSE)
                 else:
                     st.warning(f"🪪 DNI {dni}: **no figura** en los padrones cargados (OSDOP, ISSPSE)" + (f", {mes}" if mes else "") + ".")
             pregunta = ""  # no buscar el número en el resto de la base
@@ -1284,26 +1341,50 @@ if consultas.ARCHIVO.exists():
             # "clinal cobertura": tabla obra social -> % con todos los vademécums cargados.
             # "clinal cobertura vale": solo Vale Salud.
             medicamento, elegidas = cobertura
-            slug = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(medicamento)))
             st.markdown(f"**🩺 Cobertura de {medicamento}**")
-            filas = []
+            pares = []
             for clave in elegidas:
                 if clave in cargadas:
                     nombre, ruta = cargadas[clave]
-                    for c in vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime), medicamento):
-                        filas.append({"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
-                                      "Laboratorio": c.laboratorio, "Droga": c.droga})
+                    pares += [(nombre, c) for c in vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime),
+                                                                    medicamento, limite=TOPE_VARIANTES)]
+            pares = filtros_de_variantes(pares, f"cob_{consultas.normalizar(medicamento)}")
+            filas = [{"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
+                      "Laboratorio": c.laboratorio, "Droga": c.droga, "Marca": c.marca} for nombre, c in pares]
             if filas:
-                st.dataframe(filas, hide_index=True, use_container_width=True)
+                import pandas as pd
+
+                tabla_cob = pd.DataFrame([{k: v for k, v in f.items() if k != "Marca"} for f in filas[:MOSTRAR_COBERTURA]])
+                # La cobertura en verde, para que se distinga del resto (pedido de Edu).
+                st.dataframe(tabla_cob.style.map(lambda _: "color: #1e7b34; font-weight: 700; background-color: #e6f4ea",
+                                                 subset=["Cobertura"]),
+                             hide_index=True, use_container_width=True)
+                if len(filas) > MOSTRAR_COBERTURA:
+                    st.caption(f"Y {len(filas) - MOSTRAR_COBERTURA} más: tocá 🔎 Filtrar, arriba, para achicar la lista.")
             if not filas:
                 sugerir(medicamento, " cobertura" + "".join(f" {k}" for k in elegidas if len(elegidas) == 1), "cobertura")
             sin_dato = [cargadas[k][0] for k in elegidas if k in cargadas and not any(f["Obra social"] == cargadas[k][0] for f in filas)]
             if sin_dato:
                 st.caption(f"No figura en el vademécum de: {', '.join(sin_dato)}.")
             if "pami" in elegidas and "pami" not in cargadas:
-                st.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
+                # Alfabeta tiene una página por marca comercial (alfabeta.net/precio/bronax-cb.html).
+                # Si se buscó por droga ("ibuprofeno"), se arman los links con las marcas del vademécum.
+                marcas = []
+                for _, c in todos_los_vademecum():
+                    if vademecum.buscar([c], medicamento):
+                        m = vademecum.marca_corta(c)  # la página de Alfabeta es por marca, sin la dosis
+                        if m and m not in marcas:
+                            marcas.append(m)
+                if not marcas:
+                    marcas = [medicamento]
+                for m in marcas[:4]:
+                    s_m = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(m)))
+                    st.link_button(f"PAMI (Alfabeta): {m.upper()}", f"https://www.alfabeta.net/precio/{s_m}.html",
+                                   use_container_width=True)
                 st.caption("PAMI no tiene archivo cargado: se consulta en Alfabeta. Si no encuentra el producto, "
                            "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+            if "osdop" in elegidas and "osdop" not in cargadas:
+                st.caption("OSDOP: no hay vademécum cargado, solo el padrón (escribí \"dni\" y el número para ver si figura).")
             if "vale" in elegidas and "vale" not in cargadas:
                 st.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
             pregunta = medicamento  # además, lo que haya del producto (ofertas, cajón, catálogo)
@@ -1350,7 +1431,8 @@ if consultas.ARCHIVO.exists():
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
                     elif len(pregunta.strip()) >= 2:
                         # Sin cartel de "No tengo ese dato cargado" (pedido de Edu): solo las sugerencias.
-                        sugerir(pregunta)
+                        if not cobertura:  # en cobertura ya se sugirió arriba
+                            sugerir(pregunta)
         elif categoria == AYUDA_ETIQUETA:
             st.markdown(ayuda.AYUDA)
         elif categoria == CATALOGO_ETIQUETA:
