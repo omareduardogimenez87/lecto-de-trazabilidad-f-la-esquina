@@ -331,3 +331,15 @@ def test_buscador_tiene_icono_de_foto_y_catalogo_destaca_oferta():
     at.button(key="btn_buscar").click().run()
     assert not at.exception
     assert any("EN OFERTA" in m.value for m in at.markdown)
+
+
+def test_precio_alfabeta_muestra_resumen_con_pami(monkeypatch):
+    from lector import alfabeta
+    from tests.test_alfabeta import SINGULAIR
+    monkeypatch.setattr(alfabeta, "pedir", lambda marca: alfabeta.leer_pagina(SINGULAIR, marca) if marca.lower() == "singulair" else None)
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("montelukast pami")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception
+    textos = " ".join(m.value for m in at.markdown)
+    assert "**Montelukast** en AlfaBeta, marca **Singulair**" in textos and "PAMI AF **$ 36.828,50**" in textos

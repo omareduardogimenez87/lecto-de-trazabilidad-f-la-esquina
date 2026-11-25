@@ -25,7 +25,7 @@ from urllib.parse import quote
 import streamlit as st
 import streamlit.components.v1 as components
 
-from lector import ayuda, cajones, catalogo, consultas, foto_consulta, matriculas, miniaturas, ofertas, padron, precios, registro, vademecum
+from lector import alfabeta, ayuda, cajones, catalogo, consultas, foto_consulta, matriculas, miniaturas, ofertas, padron, precios, registro, vademecum
 
 # Streamlit Cloud a veces deja cargada la versión vieja de estos módulos después de un merge
 # (y aparece un AttributeError hasta hacer "Reboot app"). Si el archivo cambió, se vuelve a cargar.
@@ -1083,6 +1083,39 @@ def responder_codigo(codigo: str, base, lista, hoy) -> None:
     st.info(f"🔎 Código {codigo}: {ofertas.NO_CARGADO}")
 
 
+PALABRAS_ALFABETA = ("precio", "precios", "alfabeta")
+
+
+@st.cache_data(ttl=24 * 3600, show_spinner=False)
+def alfabeta_de(marca: str):
+    """Página de AlfaBeta de la marca (se pide una vez por día). None si no hay."""
+    return alfabeta.pedir(marca)
+
+
+def mostrar_alfabeta(medicamento: str) -> bool:
+    """Precios de AlfaBeta y PAMI AF (lo que paga el afiliado), como en el ejemplo de Edu. True si mostró algo."""
+    marcas = alfabeta.marcas_para(medicamento, [c for _, c in todos_los_vademecum()])
+    es_droga = [consultas.normalizar(m) for m in marcas] != [consultas.normalizar(medicamento)]
+    mostro = False
+    with st.spinner("Buscando en AlfaBeta..."):
+        paginas = [(m, alfabeta_de(m)) for m in marcas]
+    for marca, pagina in paginas:
+        if not pagina:
+            continue
+        mostro = True
+        with st.container(border=True):
+            st.markdown("💊 " + alfabeta.resumen(pagina, medicamento if es_droga else ""))
+            st.link_button(f"Ver {pagina.marca.title()} en AlfaBeta", pagina.url, use_container_width=True)
+    if mostro:
+        st.caption("PAMI AF = lo que paga el afiliado de PAMI con el descuento. Precios de alfabeta.net, "
+                   "confirmá en el sistema antes de cobrar.")
+    elif es_droga or marcas:
+        st.caption(f"AlfaBeta no tiene una página para **{medicamento}**"
+                   + (f" (probé: {', '.join(marcas)})" if es_droga else "")
+                   + ". AlfaBeta busca por marca: probá con el nombre comercial (ej.: Singulair).")
+    return mostro
+
+
 def todos_los_vademecum() -> list:
     lista = []
     for nombre, ruta in vademecum.fuentes().values():
@@ -1278,8 +1311,19 @@ if consultas.ARCHIVO.exists():
         if not cobertura and pregunta.strip():
             # "factor ae vale salud" (sin la palabra cobertura): solo si el producto figura en el vademécum.
             posible = consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas}, con_fuente=True)
-            if posible and any(vademecum.buscar([c for _, c in todos_los_vademecum()], posible[0])):
-                cobertura = posible
+            if posible and ("pami" in posible[1]
+                            or any(vademecum.buscar([c for _, c in todos_los_vademecum()], posible[0]))):
+                cobertura = posible  # "montelukast pami" también (PAMI se consulta en AlfaBeta)
+        precio_de = None
+        if not cobertura and pregunta.strip():
+            # "precio montelukast" / "montelukast alfabeta": precios de AlfaBeta con PAMI AF.
+            palabras_q = pregunta.split()
+            if any(consultas.normalizar(w) in PALABRAS_ALFABETA for w in palabras_q):
+                precio_de = " ".join(w for w in palabras_q if consultas.normalizar(w) not in PALABRAS_ALFABETA
+                                     and consultas.normalizar(w) not in ("de", "del", "en")).strip() or None
+        if precio_de:
+            mostrar_alfabeta(precio_de)
+            pregunta = precio_de
         if cobertura:
             # "clinal cobertura": tabla obra social -> % con todos los vademécums cargados.
             # "clinal cobertura vale": solo Vale Salud.
@@ -1295,15 +1339,17 @@ if consultas.ARCHIVO.exists():
                                       "Laboratorio": c.laboratorio, "Droga": c.droga})
             if filas:
                 st.dataframe(filas, hide_index=True, use_container_width=True)
-            if not filas:
+            hay_alfabeta = mostrar_alfabeta(medicamento) if "pami" in elegidas and "pami" not in cargadas else False
+            if not filas and not hay_alfabeta:
                 sugerir(medicamento, " cobertura" + "".join(f" {k}" for k in elegidas if len(elegidas) == 1), "cobertura")
             sin_dato = [cargadas[k][0] for k in elegidas if k in cargadas and not any(f["Obra social"] == cargadas[k][0] for f in filas)]
             if sin_dato:
                 st.caption(f"No figura en el vademécum de: {', '.join(sin_dato)}.")
             if "pami" in elegidas and "pami" not in cargadas:
                 st.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
-                st.caption("PAMI no tiene archivo cargado: se consulta en Alfabeta. Si no encuentra el producto, "
-                           "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+                if not hay_alfabeta:
+                    st.caption("PAMI no tiene archivo cargado: se consulta en Alfabeta. Si no encuentra el producto, "
+                               "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
             if "vale" in elegidas and "vale" not in cargadas:
                 st.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
             pregunta = medicamento  # además, lo que haya del producto (ofertas, cajón, catálogo)
