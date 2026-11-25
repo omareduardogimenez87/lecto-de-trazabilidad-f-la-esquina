@@ -39,6 +39,7 @@ class Cobertura:
     droga: str
     porcentaje: str
     codigo: str = ""
+    marca: str = ""  # nombre comercial solo ("BRONAX CB"), sin la presentación
 
 
 def _filas(ruta: Path) -> list[list[str]]:
@@ -84,13 +85,13 @@ def leer(ruta: Path) -> list[Cobertura]:
             except ValueError:
                 pass
             nombre = " ".join(x for x in (dato(f, c_prod), dato(f, c_pres)) if x)
-            fila = Cobertura(nombre, dato(f, c_lab), dato(f, c_dro), pct, dato(f, c_cod))
+            fila = Cobertura(nombre, dato(f, c_lab), dato(f, c_dro), pct, dato(f, c_cod), dato(f, c_prod))
             if fila not in salida:  # el archivo trae renglones repetidos
                 salida.append(fila)
     return salida
 
 
-def buscar(lista: list[Cobertura], medicamento: str, limite: int = 10) -> list[Cobertura]:
+def buscar(lista: list[Cobertura], medicamento: str, limite: int = 15) -> list[Cobertura]:
     numeros = re.findall(r"\d{8,14}", medicamento)
     if numeros:
         return [c for c in lista if any(c.codigo.lstrip("0") == n.lstrip("0") for n in numeros)][:limite]

@@ -1191,7 +1191,6 @@ if consultas.ARCHIVO.exists():
             # "clinal cobertura": tabla obra social -> % con todos los vademécums cargados.
             # "clinal cobertura vale": solo Vale Salud.
             medicamento, elegidas = cobertura
-            slug = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(medicamento)))
             st.markdown(f"**🩺 Cobertura de {medicamento}**")
             filas = []
             for clave in elegidas:
@@ -1199,18 +1198,37 @@ if consultas.ARCHIVO.exists():
                     nombre, ruta = cargadas[clave]
                     for c in vademecum.buscar(vademecum_cargado(str(ruta), ruta.stat().st_mtime), medicamento):
                         filas.append({"Obra social": nombre, "Cobertura": c.porcentaje, "Producto": c.producto,
-                                      "Laboratorio": c.laboratorio, "Droga": c.droga})
+                                      "Laboratorio": c.laboratorio, "Droga": c.droga, "Marca": c.marca})
             if filas:
-                st.dataframe(filas, hide_index=True, use_container_width=True)
+                st.dataframe([{k: v for k, v in f.items() if k != "Marca"} for f in filas],
+                             hide_index=True, use_container_width=True)
             if not filas:
                 sugerir(medicamento, " cobertura" + "".join(f" {k}" for k in elegidas if len(elegidas) == 1), "cobertura")
             sin_dato = [cargadas[k][0] for k in elegidas if k in cargadas and not any(f["Obra social"] == cargadas[k][0] for f in filas)]
             if sin_dato:
                 st.caption(f"No figura en el vademécum de: {', '.join(sin_dato)}.")
             if "pami" in elegidas and "pami" not in cargadas:
-                st.link_button("PAMI (Alfabeta)", f"https://www.alfabeta.net/precio/{slug}.html", use_container_width=True)
+                # Alfabeta tiene una página por marca comercial (alfabeta.net/precio/bronax-cb.html).
+                # Si se buscó por droga ("ibuprofeno"), se arman los links con las marcas del vademécum.
+                marcas = []
+                for _, c in todos_los_vademecum():
+                    if vademecum.buscar([c], medicamento):
+                        # "TAFIROL 1 G" -> "TAFIROL": la página de Alfabeta es por marca, sin la dosis.
+                        palabras_m = (c.marca or c.producto).split()
+                        corte = next((i for i, w in enumerate(palabras_m) if i and w[0].isdigit()), len(palabras_m))
+                        m = " ".join(palabras_m[:corte])
+                        if m and m not in marcas:
+                            marcas.append(m)
+                if not marcas:
+                    marcas = [medicamento]
+                for m in marcas[:4]:
+                    s_m = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(m)))
+                    st.link_button(f"PAMI (Alfabeta): {m.upper()}", f"https://www.alfabeta.net/precio/{s_m}.html",
+                                   use_container_width=True)
                 st.caption("PAMI no tiene archivo cargado: se consulta en Alfabeta. Si no encuentra el producto, "
                            "buscalo en [alfabeta.net](https://www.alfabeta.net/).")
+            if "osdop" in elegidas and "osdop" not in cargadas:
+                st.caption("OSDOP: no hay vademécum cargado, solo el padrón (escribí \"dni\" y el número para ver si figura).")
             if "vale" in elegidas and "vale" not in cargadas:
                 st.link_button("Vale Salud (vademécum)", "https://valesalud.ar/vademecum.html", use_container_width=True)
             pregunta = medicamento  # además, lo que haya del producto (ofertas, cajón, catálogo)
@@ -1257,7 +1275,8 @@ if consultas.ARCHIVO.exists():
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
                     elif len(pregunta.strip()) >= 2:
                         st.info(consultas.SIN_DATO)
-                        sugerir(pregunta)
+                        if not cobertura:  # en cobertura ya se sugirió arriba
+                            sugerir(pregunta)
         elif categoria == AYUDA_ETIQUETA:
             st.markdown(ayuda.AYUDA)
         elif categoria == CATALOGO_ETIQUETA:

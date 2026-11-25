@@ -260,6 +260,7 @@ PALABRAS_COBERTURA = ("cobertura", "coberturas", "cubre", "cubren", "cobertu", "
 FUENTES_COBERTURA = {
     "vale": ("vale", "valesalud", "vale+"),
     "pami": ("pami", "alfabeta"),
+    "osdop": ("osdop",),
 }
 _DESCARTAR = ("de", "del", "la", "el", "en", "salud", "para")
 

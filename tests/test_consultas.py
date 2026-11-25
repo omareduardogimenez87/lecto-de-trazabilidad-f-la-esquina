@@ -90,7 +90,7 @@ def test_la_app_muestra_consultas():
 
 def test_medicamento_de_cobertura():
     from lector.consultas import medicamento_de_cobertura
-    assert medicamento_de_cobertura("ibuprofeno cobertura") == ("ibuprofeno", ["vale", "pami"])
+    assert medicamento_de_cobertura("ibuprofeno cobertura") == ("ibuprofeno", ["vale", "pami", "osdop"])
     assert medicamento_de_cobertura("Tafirol 1g cobertura pami") == ("Tafirol 1g", ["pami"])
     assert medicamento_de_cobertura("Clinal cobertura vale salud") == ("Clinal", ["vale"])
     assert medicamento_de_cobertura("ibuprofeno") is None
