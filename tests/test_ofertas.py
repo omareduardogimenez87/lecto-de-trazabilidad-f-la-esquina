@@ -70,3 +70,15 @@ def test_la_app_responde_con_la_foto():
     assert any("TAFIROL DUO" in m.value for m in at.markdown)
     at.text_input(key="consulta_txt").input("1234567890128"); at.button(key="btn_buscar").click().run()
     assert any(ofertas.NO_CARGADO in i.value for i in at.info)
+
+
+def test_sertal_compuesto_sin_codigo_de_barras():
+    """Promo avisada por Germán el 25/11/2026: x10 y x20 al 25 % hasta fin de enero."""
+    encontradas = ofertas.buscar(LISTA, "sertal compuesto")
+    assert {o.presentacion for o in encontradas} == {"comp.rec.x 10", "comp.rec.x 20"}
+    for o in encontradas:
+        assert o.descuento == 0.25
+        assert o.hasta == date(2027, 1, 31)
+        assert o.vigencia(date(2026, 11, 25)) == "vigente"
+        assert o.vigencia(date(2027, 2, 1)) == "vencida"
+    assert not any(o.producto.startswith("Productos") for o in LISTA)
