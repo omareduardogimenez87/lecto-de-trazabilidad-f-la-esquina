@@ -320,3 +320,21 @@ def test_aviso_isspse_al_buscar_medico_con_convenio():
     at.text_input(key="consulta_txt").input("medico abalos")
     at.button(key="btn_buscar").click().run()
     assert any("imprimí la **validación**" in w.value for w in at.warning)
+
+
+def test_producto_con_obra_social_sin_la_palabra_cobertura():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("Factor ae vale salud")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception
+    tabla = at.dataframe[0].value
+    assert set(tabla["Obra social"]) == {"Vale Salud"} and "40 %" in list(tabla["Cobertura"])
+
+
+def test_buscador_tiene_icono_de_foto_y_catalogo_destaca_oferta():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    assert any("foto_consulta" in str(getattr(u, "proto", u)) for u in at.get("file_uploader"))
+    at.text_input(key="consulta_txt").input("geniol rapida accion")
+    at.button(key="btn_buscar").click().run()
+    assert not at.exception
+    assert any("EN OFERTA" in m.value for m in at.markdown)
