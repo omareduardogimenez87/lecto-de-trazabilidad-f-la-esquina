@@ -298,6 +298,7 @@ PAMI · IOSEP · OSDE · OSPE · NOBIS · Boreal · OSDOP · Sancor · Swiss Med
 > Para detalle celda por celda: `Obras_Sociales_por_Sucursal.xlsx`, hoja "Matriz sucursales".
 
 ### 4.5 Alertas rápidas por obra social ✅
+- **ISSPSE (convenio médicos, descuento extra)** — indicación de Germán (ROC), 25/11/2026 ✅: todo lo que se factura con ISSPSE se reimprime. **Mostrador:** imprimir la validación. **Caja (perfumería):** imprimir una copia de la factura. Adjuntarlo con las recetas diarias para el control de auditoría.
 - **IOSEP** (Res. 5644/26): el papel se dio de baja salvo excepciones (Sobretope, Malvinas, Madres de Plaza de Mayo, convenios colectivos, extraña jurisdicción). La receta electrónica vale 15 días. ⚠️ Las órdenes de papel de excepción valen 60 días (la Guía dice solo "otra provincia": vale lo del Instructivo).
 - **PAMI preimpreso:** no se venden insulinas ni tiras reactivas.
 - **Boreal:** tope de monto por renglón.

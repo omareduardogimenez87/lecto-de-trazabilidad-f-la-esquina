@@ -186,6 +186,9 @@ def secretos() -> dict:
 # se prende en Secrets con  escaneo_activo = true  (el código del lector queda intacto).
 ESCANEO_ACTIVO = str(secretos().get("escaneo_activo", False)).strip().lower() in ("true", "1", "si", "sí")
 
+AVISO_ISSPSE = ("🧾 **ISSPSE (indicación de Germán, ROC):** en **mostrador** imprimí la **validación**; en **caja/perfumería**, "
+                "una **copia de la factura**. Adjuntala con las **recetas diarias** para auditoría.")
+
 # Contraseña para entrar a la app (pedido de Edu, 24/11/2026). Se activa poniendo en Secrets
 #   clave_app = "la-clave"
 # Sin esa línea la app abre como siempre. Se pide una vez por sesión del navegador.
@@ -1156,6 +1159,8 @@ if consultas.ARCHIVO.exists():
                          "Probable": " · 🟡 Convenio ISSPSE probable: confirmá con \"dni\" y su número"}
                 st.markdown("\n".join(f"- 👨‍⚕️ **{m.nombre}** · Matrícula **{m.matricula}**{marca.get(m.isspse, '')}"
                                        for m in medicos))
+                if any(m.isspse for m in medicos):
+                    st.warning(AVISO_ISSPSE)
                 st.caption("Si no dice convenio, igual puede estar con el nombre escrito distinto: "
                            "confirmalo escribiendo \"isspse\" y su DNI.")
             else:
@@ -1174,6 +1179,8 @@ if consultas.ARCHIVO.exists():
                     nombres = [{"Cobertura especial": "Cobertura especial (crónico)",
                                 "ISSPSE": "convenio ISSPSE (descuento extra)"}.get(l, l) for l in listas]
                     st.success(f"🪪 DNI {dni}: figura en **{' · '.join(nombres)}**" + (f" (padrón {mes})" if mes else ""))
+                    if "ISSPSE" in listas:
+                        st.warning(AVISO_ISSPSE)
                 else:
                     st.warning(f"🪪 DNI {dni}: **no figura** en los padrones cargados (OSDOP, ISSPSE)" + (f", {mes}" if mes else "") + ".")
             pregunta = ""  # no buscar el número en el resto de la base
