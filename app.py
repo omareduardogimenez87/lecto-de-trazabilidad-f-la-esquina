@@ -943,6 +943,12 @@ def mostrar_catalogo(encontrados, lista_ofertas, maximo: int = 10) -> None:
         sku = p.sku.lstrip("0")
         texto = (f"**{p.nombre}**  \n{p.marca} · _{p.categoria}_"
                  + (f"  \n{ETIQUETA_OFERTA}" if sku in con_oferta else ""))
+        dato_accion = accion.del_sku(tabla_de_acciones(accion.ARCHIVO.stat().st_mtime if accion.ARCHIVO.exists() else 0), p.sku)
+        if dato_accion:  # solo si está en el archivo, copiado de la fuente (nada generado)
+            texto += "  \n" + accion.texto(dato_accion)
+        # Referencia: la página de La Esquina (a veces tiene promos y precios exclusivos de la web).
+        texto += ("  \n🌐 [Ver en la página web (precio web)](https://www.google.com/search?q="
+                  + quote(f"site:farmacialaesquina.com.ar {p.nombre}") + ")")
         foto = miniatura(ean_por_sku.get(sku, ""), p.sku, p.nombre) if i < MINIATURAS_MAX else None
         if foto:
             c_foto, c_txt = st.columns([1, 4], vertical_alignment="center")
@@ -1176,10 +1182,7 @@ def linea_accion(c) -> str:
     """Acción terapéutica solo si está en el archivo con fuente; si no, "sin dato" y el link a Alfabeta."""
     dato = accion.de_la_droga(tabla_de_acciones(accion.ARCHIVO.stat().st_mtime if accion.ARCHIVO.exists() else 0), c.droga)
     if dato:
-        texto = f"💡 Acción terapéutica: **{dato['accion']}**"
-        if dato.get("indicacion"):
-            texto += f" · Suele indicarse para: {dato['indicacion']}"
-        return texto + (f" _(fuente: {dato['fuente']})_" if dato.get("fuente") else "")
+        return accion.texto(dato)
     s_m = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(vademecum.marca_corta(c))))
     return f"💡 Acción terapéutica: sin dato · [ver en Alfabeta](https://www.alfabeta.net/precio/{s_m}.html)"
 

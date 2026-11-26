@@ -16,6 +16,7 @@ __pycache__/
 !imagenes/*.png
 !consultas/*.xlsx
 !consultas/Vademecum_*.csv
+!consultas/Accion_Terapeutica.csv
 
 # Padrones de afiliados: nunca al repo (solo va padron_osdop.json con códigos)
 *osdop*.xlsx
