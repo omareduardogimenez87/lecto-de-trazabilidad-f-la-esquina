@@ -1443,9 +1443,12 @@ if consultas.ARCHIVO.exists():
                     if re.fullmatch(r"\s*\d{8,14}\s*", pregunta):
                         st.info(f"🔎 {ofertas.NO_CARGADO}")
                     elif len(pregunta.strip()) >= 2:
-                        # Sin cartel de "No tengo ese dato cargado" (pedido de Edu): solo las sugerencias.
+                        # Leyenda corta "Artículo no encontrado" (pedido de Edu, 26/11), sugerencias y la página web.
+                        st.info(f"🔍 **Artículo no encontrado:** «{pregunta.strip()}». Probá con otra palabra o revisá cómo está escrito.")
                         if not cobertura:  # en cobertura ya se sugirió arriba
                             sugerir(pregunta)
+                        st.markdown("🌐 [Buscarlo en la página web de La Esquina](https://www.google.com/search?q="
+                                    + quote(f"site:farmacialaesquina.com.ar {pregunta.strip()}") + ")")
         elif categoria == AYUDA_ETIQUETA:
             st.markdown(ayuda.AYUDA)
         elif categoria == CATALOGO_ETIQUETA:
