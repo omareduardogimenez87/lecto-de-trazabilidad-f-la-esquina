@@ -310,6 +310,14 @@ def test_dni_solo_el_numero_va_al_padron():
     assert any("padrones" in i.value for i in at.info)
 
 
+def test_medicamento_con_resumen_de_todo_lo_cargado():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input(key="consulta_txt").input("tafirol")
+    at.button(key="btn_buscar").click().run()
+    resumen = next(i.value for i in at.info if "Lo que hay cargado" in i.value)
+    assert "Ofertas" in resumen and "Vale Salud" in resumen and "PAMI" in resumen
+
+
 def test_contrasena_de_la_app():
     at = AppTest.from_file(APP, default_timeout=60)
     at.secrets["clave_app"] = "mitre123"
