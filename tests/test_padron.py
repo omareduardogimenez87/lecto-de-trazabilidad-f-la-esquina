@@ -17,4 +17,6 @@ def test_dni_de_la_pregunta():
 
 def test_isspse_por_dni():
     assert padron.dni_de_la_pregunta("isspse 20868328") == "20868328"
+    assert padron.dni_de_la_pregunta("issp 20868328") == "20868328"
+    assert padron.dni_de_la_pregunta("ISSP 20.868.328") == "20868328"
     assert "ISSPSE" in padron.leer().get("listas", {})

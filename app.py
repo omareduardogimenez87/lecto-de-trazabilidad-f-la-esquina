@@ -1341,6 +1341,10 @@ if consultas.ARCHIVO.exists():
                         st.warning(AVISO_ISSPSE)
                 else:
                     st.warning(f"🪪 DNI {dni}: **no figura** en los padrones cargados (OSDOP, ISSPSE)" + (f", {mes}" if mes else "") + ".")
+                    if "issp" in pregunta.lower():
+                        st.caption("Ojo: la lista ISSPSE de la app es la de **médicos con convenio** (descuento extra), "
+                                   "no la de afiliados. Para saber si un **paciente** está afiliado al ISSPSE, "
+                                   "validalo en el sistema de validación de ISSPSE.")
             pregunta = ""  # no buscar el número en el resto de la base
         cargadas = vademecum.fuentes()  # {"vale": ("Vale Salud", ruta)}
         cobertura = (consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas})

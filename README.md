@@ -160,4 +160,4 @@ Si en Secrets está `clave_app = "..."`, la app pide esa contraseña antes de mo
 
 ### Médicos y convenio ISSPSE
 - **"matricula 2911"**, **"dr abalos"** o **"medico abalos"**: nombre y matrícula del médico (`consultas/Matriculas_Medicos.xlsx`), con ✅ si está en el convenio ISSPSE (descuento extra) o 🟡 si es probable.
-- **"isspse 12345678"** (o "dni ..."): confirma por DNI si está en el convenio. Del listado ISSPSE solo se guarda un código de cada DNI en `consultas/padron_isspse.json` (misma clave `padron_clave`), sin nombres.
+- **"issp 12345678"**, **"isspse 12345678"** (o "dni ..."): confirma por DNI si está en el convenio. Del listado ISSPSE solo se guarda un código de cada DNI en `consultas/padron_isspse.json` (misma clave `padron_clave`), sin nombres.
