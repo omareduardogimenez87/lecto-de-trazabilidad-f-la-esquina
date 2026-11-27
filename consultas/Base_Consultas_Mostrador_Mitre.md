@@ -3,7 +3,7 @@ archivo: Base_Consultas_Mostrador_Mitre.md
 uso: base de conocimiento para la app de consultas del mostrador
 sucursal: Farmacia La Esquina · Sucursal Mitre (n° 2)
 version: 1.0
-actualizado: 2026-11-23
+actualizado: 2026-11-27
 fuentes: Contexto_Farmacia_La_Esquina.md (23/11/2026) · Instructivo de Obras Sociales (07/09/2026) · Guia_Obras_Sociales · Planes_Especiales_y_Autorizaciones · Obras_Sociales_por_Sucursal.xlsx (cartel viejo) · Zafiro_Atajos · Circuito_Real · Paginas_y_Procedimientos · Revision_Anexos_23-11-2026.xlsx
 ---
 
@@ -73,42 +73,41 @@ fuentes: Contexto_Farmacia_La_Esquina.md (23/11/2026) · Instructivo de Obras So
 
 ### 2.1 Período vigente
 
-- **Período:** sábado 21/11/2026 al viernes 27/11/2026
-- **Cargado el:** 23/11/2026
-- **Fuente:** horario de Germán Ibarra (ROC), 2 imágenes: fin de semana + feriado, y semana 24/11 al 27/11
-- **Feriados en el período:** lunes 23/11/2026 (equipo reducido)
+- **Período:** sábado 28/11/2026 al viernes 04/12/2026
+- **Cargado el:** 27/11/2026
+- **Fuente:** horario de Germán Ibarra (ROC), 2 imágenes: fin de semana (sáb 28/11 y dom 29/11) y semana 30/11 al 04/12
+- **Feriados en el período:** ninguno
 - **Leyenda:** `—` = no figura en el horario de ese día (franco o no programado). `VAC` = vacaciones. `COMP` = franco compensatorio.
 
-| Persona | Puesto | Sáb 21 | Dom 22 | Lun 23 (feriado) | Mar 24 | Mié 25 | Jue 26 | Vie 27 |
+| Persona | Puesto | Sáb 28 | Dom 29 | Lun 30 | Mar 01 | Mié 02 | Jue 03 | Vie 04 |
 |---|---|---|---|---|---|---|---|---|
-| Claudia Spinnato | Farmacéutica (Ventas) | — | — | — | 7–15 | 7–15 | 7–15 | 7–15 |
-| Fernanda Caro | Farmacéutica (Mostrador/Ventas) | 7:30–15:30 | 7:30–15:30 | — | 12–20 | 12–20 | 12–20 | 12–20 |
+| Claudia Spinnato | Farmacéutica (Ventas) | 7:30–15:30 | 7:30–15:30 | 12–20 | 12–20 | 12–20 | 12–20 | 12–20 |
+| Fernanda Caro | Farmacéutica (Ventas) | — | — | 7–15 | 7–15 | 7–15 | 7–15 | 7–15 |
 | Germán Ibarra | ROC | — | — | — | — | — | — | — |
-| Silvia Beltrán | Mostrador | 15:30–23:30 | 15:30–23:30 | 7:30–15:30 | 8–16:30 | 8–16:30 | 8–16:30 | 8–16:30 |
-| Maxi Figueroa | Mostrador | — | — | — | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 |
-| Yessi Guzmán | Mostrador | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 | 15:30–23:30 | 15:30–00 | 15:30–00 | 15:30–00 | 15:30–00 |
-| Edu (Omar Giménez) | Mostrador | — | — | — | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 |
-| Sabrina Sayago | Caja | — | — | — | 7–15:30 | 7–15:30 | 7–15:30 | 7–15:30 |
-| Majo (M. José Sardaña) | Caja | — | — | — | 10–14 / 18–22 | 10–14 / 18–22 | 10–14 / 18–22 | 10–14 / 18–22 |
-| Blanca Rueda | Caja | 7:30–15:30 | 7:30–15:30 | 7:30–15:30 | 15:30–00 | 15:30–00 | 15:30–00 | 15:30–00 |
-| Nico (Nicolás) Bulacio | Caja (fin de semana) | 15:30–23:30 | 15:30–23:30 | — | — | — | — | — |
-| Rosalía Paz (de Aconcagua, cubre) | Caja | — | — | 15:30–23:30 | — | — | — | — |
-| Flor Stancampiano | Perfumería | — | — | — | COMP | 7:30–15:30 | 7:30–15:30 | 7:30–15:30 |
-| Daiana Garnica | Perfumería | — | — | — | 15:30–23:30 | 15:30–23:30 | 15:30–23:30 | 15:30–23:30 |
-| Johana Gallo | Perfumería | 15:30–23:30 | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 | VAC | VAC | VAC | 10–14 / 18:30–22:30 |
-| Solana Orellana | Perfumería (asesora de salón) | 7:30–15:30 | — | — | 7:30–15:30 | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 |
-| Germán Francavilla | Carga/Repo | 8–13 | — | — | 9:30–17:30 | 9:30–17:30 | 9:30–17:30 | 9:30–17:30 |
-| Gastón Colucci | Carga/Repo | 8–13 | — | — | 7–12 / 17–20 | 7–12 / 17–20 | 7–12 / 17–20 | 7–12 / 17–20 |
-| Analía Vázquez | Mantenimiento | 8–11 | — | — | 8:30–14:30 | 8:30–14:30 | 8:30–14:30 | 8:30–14:30 |
+| Silvia Beltrán | Mostrador | — | 15:30–23:30 | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 | 9:30–13:30 / 18:30–22:30 |
+| Maxi Figueroa | Mostrador | 15:30–23:30 | 9:30–13:30 / 18–22 | 15:30–00 | 15:30–00 | 15:30–00 | 15:30–00 | 16–00 |
+| Yessi Guzmán | Mostrador | — | — | 8–16 | 8–16 | 8–16 | 8–16 | 8–16 |
+| Edu (Omar Giménez) | Mostrador | 9–14 / 18–22 | — | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 |
+| Sabrina Sayago | Caja | 7:30–15:30 | 7:30–15:30 | 15:30–00 | 15:30–00 | 15:30–00 | 15:30–00 | 15:30–00 |
+| Majo (M. José Sardaña) | Caja | 15:30–23:30 | 15:30–23:30 | VAC | VAC | VAC | VAC | VAC |
+| Blanca Rueda | Caja | — | — | 7–15:30 | 7–15:30 | 7–15:30 | 7–15:30 | 7–15:30 |
+| Flor Stancampiano | Perfumería | 16:30–22:30 | 15:30–23:30 | 15–23:30 | 15–23:30 | 15–23:30 | 15–23:30 | 15:30–23:30 |
+| Daiana Garnica | Perfumería | 7:30–15:30 | 7:30–15:30 | 9:30–14 / 18:30–22:30 | 9:30–14 / 18:30–22:30 | 9:30–14 / 18:30–22:30 | 9:30–14 / 18:30–22:30 | 10–14 / 18:30–22:30 |
+| Johana Gallo | Perfumería | — | — | 7:30–15:30 | 7:30–15:30 | 7:30–15:30 | 7:30–15:30 | 7:30–15:30 |
+| Solana Orellana | Perfumería (asesora de salón) | — | — | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 | 9–13 / 18–22 |
+| Germán Francavilla | Carga/Repo | 8:30–13:30 | — | 9:30–17:30 | 9:30–17:30 | 9:30–17:30 | 9:30–17:30 | 9:30–17:30 |
+| Gastón Colucci | Carga/Repo | 8–13 | — | 7–12 / 17–20 | 7–12 / 17–20 | 7–12 / 17–20 | 7–12 / 17–20 | 7–12 / 17–20 |
+| Analía Vázquez | Mantenimiento | 8–11 | — | 8:30–14:30 | 8:30–14:30 | 8:30–14:30 | 8:30–14:30 | 8:30–14:30 |
 
 **Notas de esta semana:**
-- ✅ Feriado lunes 23/11: 5 personas (Blanca, Rosalía Paz, Silvia, Yessi y Johana).
-- ✅ Edu no trabaja sábado, domingo ni feriado: coincide con el período de prueba (sin horas extras).
-- ✅ La planilla de semana trae un solo horario para 24/11 al 27/11: vale igual para los 4 días, salvo lo que dicen las observaciones (confirmado por Edu).
-- ✅ Johana: vacaciones del 24 al 26 (inclusive); el viernes 27 trabaja en su horario habitual (confirmado por Edu).
-- ✅ Solana: el martes hace 7:30 a 15:30 y el resto de los días 9–13 / 18–22 (confirmado por Edu).
-- ✅ Germán Ibarra (ROC) no figura en el horario (confirmado por Edu).
-- ⚠️ El sábado 28/11 en adelante no está en estas planillas: llega con el horario del viernes 27/11.
+- ✅ La planilla del sábado dice "28/10", pero es el **sábado 28/11** (confirmado por Edu).
+- ✅ La planilla de semana trae un solo horario para 30/11 al 04/12: vale igual para los 5 días, salvo las observaciones del viernes.
+- ✅ Viernes 04/12 distinto: Maxi 16 a 00 · Flor 15:30 a 23:30 · Daiana 10 a 14 y 18:30 a 22:30.
+- ✅ Majo (M. José Sardaña): **vacaciones hasta el 07/12 inclusive**. El sábado 28 y el domingo 29 figura trabajando 15:30 a 23:30.
+- ✅ Edu no trabaja el domingo 29/11 (no figura).
+- ⚠️ La foto del domingo 29/11 termina en Perfumería: si había más filas abajo (repo, carga, mantenimiento), no se ven. A confirmar con Germán.
+- ⚠️ Cambio respecto de la semana pasada: Fernanda pasa a 7 a 15 y Claudia a 12 a 20 (así figura en la planilla).
+- ⚠️ El sábado 05/12 en adelante no está en estas planillas: llega con el horario del viernes 04/12.
 
 > Si el horario de Germán trae personas que no están en la tabla, se agregan como filas nuevas.
 
@@ -474,3 +473,4 @@ Del Sud · Monroe · Suizo. (Medidor de glucosa PAMI: Monroe Córdoba ⚠️ bor
 | 23/11/2026 | Versión 1.0: estructura inicial y datos del Contexto, anexos y revisión de anexos | Claude con Edu |
 | 23/11/2026 | Horario cargado: sáb 21/11 al vie 27/11 (incluye feriado lunes 23/11) | Claude con Edu |
 | 23/11/2026 | Interpretaciones del horario confirmadas · horario de atención de la Mitre agregado | Claude con Edu |
+| 27/11/2026 | Horario cargado: sáb 28/11 al vie 04/12 (vacaciones de Majo hasta 07/12) | Claude con Edu |
