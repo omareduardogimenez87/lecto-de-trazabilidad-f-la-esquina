@@ -103,7 +103,7 @@ fuentes: Contexto_Farmacia_La_Esquina.md (23/11/2026) · Instructivo de Obras So
 - ✅ La planilla del sábado dice "28/10", pero es el **sábado 28/11** (confirmado por Edu).
 - ✅ La planilla de semana trae un solo horario para 30/11 al 04/12: vale igual para los 5 días, salvo las observaciones del viernes.
 - ✅ Viernes 04/12 distinto: Maxi 16 a 00 · Flor 15:30 a 23:30 · Daiana 10 a 14 y 18:30 a 22:30.
-- ✅ Majo (M. José Sardaña): **vacaciones hasta el 07/12 inclusive**. El sábado 28 y el domingo 29 figura trabajando 15:30 a 23:30.
+- ✅ Majo (M. José Sardaña): trabaja el sábado 28 y el domingo 29 (15:30 a 23:30) y está de **vacaciones del lunes 30/11 al 07/12 inclusive** (confirmado por Edu).
 - ✅ Edu no trabaja el domingo 29/11 (no figura).
 - ⚠️ La foto del domingo 29/11 termina en Perfumería: si había más filas abajo (repo, carga, mantenimiento), no se ven. A confirmar con Germán.
 - ⚠️ Cambio respecto de la semana pasada: Fernanda pasa a 7 a 15 y Claudia a 12 a 20 (así figura en la planilla).
