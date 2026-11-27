@@ -15,6 +15,14 @@ def test_dni_de_la_pregunta():
     assert padron.dni_de_la_pregunta("7793742001673") is None
 
 
+def test_dni_solo_el_numero():
+    assert padron.dni_de_la_pregunta("25333620") == "25333620"
+    assert padron.dni_de_la_pregunta(" 25.333.620 ") == "25333620"
+    assert padron.dni_de_la_pregunta("5333620") == "5333620"
+    assert padron.dni_de_la_pregunta("1234567890") is None  # SKU
+    assert padron.dni_de_la_pregunta("2911") is None
+
+
 def test_isspse_por_dni():
     assert padron.dni_de_la_pregunta("isspse 20868328") == "20868328"
     assert padron.dni_de_la_pregunta("issp 20868328") == "20868328"

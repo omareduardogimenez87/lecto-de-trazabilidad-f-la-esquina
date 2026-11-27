@@ -1326,7 +1326,7 @@ if consultas.ARCHIVO.exists():
             pregunta = ""
         dni = padron.dni_de_la_pregunta(pregunta) if pregunta.strip() else None
         if dni:
-            # "dni 25333620": solo dice en qué lista de OSDOP figura (sin nombre ni enfermedad).
+            # "25333620", "dni ..." o "issp ...": en qué listas figura (OSDOP, ISSPSE...) (sin nombre ni enfermedad).
             datos_padron, clave = padron.leer(), str(secretos().get("padron_clave", ""))
             if not datos_padron or not clave:
                 st.info("🪪 Los padrones (OSDOP, ISSPSE) todavía no están cargados.")
@@ -1335,16 +1335,15 @@ if consultas.ARCHIVO.exists():
                 mes = datos_padron.get("mes", "")
                 if listas:
                     nombres = [{"Cobertura especial": "Cobertura especial (crónico)",
-                                "ISSPSE": "convenio ISSPSE (descuento extra)"}.get(l, l) for l in listas]
+                                "ISSPSE": "médicos con convenio ISSPSE (descuento extra)"}.get(l, l) for l in listas]
                     st.success(f"🪪 DNI {dni}: figura en **{' · '.join(nombres)}**" + (f" (padrón {mes})" if mes else ""))
                     if "ISSPSE" in listas:
                         st.warning(AVISO_ISSPSE)
                 else:
                     st.warning(f"🪪 DNI {dni}: **no figura** en los padrones cargados (OSDOP, ISSPSE)" + (f", {mes}" if mes else "") + ".")
-                    if "issp" in pregunta.lower():
-                        st.caption("Ojo: la lista ISSPSE de la app es la de **médicos con convenio** (descuento extra), "
-                                   "no la de afiliados. Para saber si un **paciente** está afiliado al ISSPSE, "
-                                   "validalo en el sistema de validación de ISSPSE.")
+                    st.caption("Ojo: la lista ISSPSE de la app es la de **médicos con convenio** (descuento extra), "
+                               "no la de afiliados. Para saber si un **paciente** está afiliado al ISSPSE, "
+                               "validalo en el sistema de validación de ISSPSE.")
             pregunta = ""  # no buscar el número en el resto de la base
         cargadas = vademecum.fuentes()  # {"vale": ("Vale Salud", ruta)}
         cobertura = (consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas})
