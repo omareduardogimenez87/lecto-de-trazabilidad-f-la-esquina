@@ -1,6 +1,6 @@
 """Consultas rápidas: busca en el archivo .md y sigue sus reglas (sin IA)."""
 
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -9,15 +9,20 @@ from lector import consultas
 
 APP = str(Path(__file__).resolve().parent.parent / "app.py")
 BASE = consultas.leer()
-EN_PERIODO = date(2026, 11, 24)  # martes, dentro del horario cargado
-FUERA = date(2026, 12, 5)
+# Las fechas salen del período cargado en la sección 2.1, así los tests
+# siguen andando cuando Edu cambia el horario cada viernes.
+INICIO, FIN = BASE.periodo
+EN_PERIODO = INICIO + timedelta(days=3)  # martes, dentro del horario cargado
+FUERA = FIN + timedelta(days=1)
+DIA_PROMO = date(2026, 11, 24)  # para las promos (no depende del horario)
 
 
 def test_lee_categorias_y_periodo():
     etiquetas = [s.etiqueta for s in BASE.secciones]
     assert "💳 Obras sociales" in etiquetas
     assert not any("Reglas" in e or "Registro" in e for e in etiquetas)
-    assert BASE.periodo == (date(2026, 11, 21), date(2026, 11, 27))
+    assert INICIO.weekday() == 5 and FIN.weekday() == 4  # de sábado a viernes
+    assert (FIN - INICIO).days == 6
 
 
 def test_busca_sin_importar_tildes_ni_mayusculas():
@@ -46,9 +51,10 @@ def test_consultas_de_salud_van_a_la_farmaceutica():
 def test_quien_trabaja_hoy():
     r = consultas.buscar(BASE, "quién trabaja hoy", EN_PERIODO)
     columna, gente = r["hoy"]
-    assert columna == "Mar 24"
-    assert ("Yessi Guzmán", "Mostrador", "15:30–00") in gente
-    assert all(p != "Germán Ibarra" for p, _, _ in gente)  # no figura ese día
+    assert columna == f"Mar {EN_PERIODO.day:02d}" or columna == f"Mar {EN_PERIODO.day}"
+    assert gente
+    assert all(h != "—" for _, _, h in gente)  # solo los que figuran ese día
+    assert all(p != "Germán Ibarra" for p, _, _ in gente)  # no figura en el horario
 
 
 def test_horario_fuera_del_periodo():
@@ -62,7 +68,7 @@ def test_horario_fuera_del_periodo():
 def test_promo_vencida():
     r = consultas.buscar(BASE, "andromaco avanter", date(2026, 12, 1))
     assert any("vencida" in t for _, t in r["datos"])
-    r = consultas.buscar(BASE, "andromaco avanter", EN_PERIODO)
+    r = consultas.buscar(BASE, "andromaco avanter", DIA_PROMO)
     assert not any("vencida" in t for _, t in r["datos"])
     promos = next(s for s in BASE.secciones if s.numero == "7")
     assert "vencida" in consultas.marcar_promos(promos.contenido, date(2026, 12, 1))
