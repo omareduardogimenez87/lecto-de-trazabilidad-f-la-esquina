@@ -37,9 +37,14 @@ def leer(archivo: Path = ARCHIVO) -> dict:
 
 
 def dni_de_la_pregunta(pregunta: str) -> str | None:
-    """"dni 25333620" u "osdop 25.333.620" -> "25333620". Solo si dice dni u osdop."""
+    """"dni 25333620", "osdop 25.333.620", "issp 25333620" o el número solo -> "25333620".
+
+    El número solo (7 u 8 cifras, con o sin puntos) se toma como DNI (pedido de Edu, 27/11/2026):
+    no choca con los códigos de barras (13 cifras) ni con los SKU (10 cifras)."""
     texto = pregunta.lower()
-    if "dni" not in texto and "osdop" not in texto and "isspse" not in texto:
+    if re.fullmatch(r"\s*\d{1,2}\.?\d{3}\.?\d{3}\s*", texto):
+        return texto.strip().replace(".", "")
+    if "dni" not in texto and "osdop" not in texto and "issp" not in texto:
         return None
     m = re.search(r"\b(\d{1,2}\.?\d{3}\.?\d{3})\b", texto)
     return m.group(1).replace(".", "") if m else None

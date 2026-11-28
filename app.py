@@ -1173,6 +1173,38 @@ def fichas_de_vademecum(pregunta: str, maximo: int = 5) -> bool:
     return bool(por_producto)
 
 
+def resumen_del_producto(pregunta: str, encontradas: list, en_cajon: list) -> None:
+    """Arriba de la búsqueda de un producto: en qué listas cargadas figura y en cuáles no, y el link a PAMI.
+
+    Solo si el producto aparece en algún vademécum, oferta o cajón (si no, es otra consulta).
+    """
+    obras = {}
+    for nombre, c in todos_los_vademecum():
+        if vademecum.buscar([c], pregunta):
+            obras.setdefault(nombre, c)
+    if not (obras or encontradas or en_cajon):
+        return
+    figura = []
+    if encontradas:
+        figura.append(f"🏷️ Ofertas ({len(encontradas)})")
+    if en_cajon:
+        figura.append("🗄️ Cajón")
+    figura += [f"🩺 {n}" for n in obras]
+    no_figura = [n for n, _ in vademecum.fuentes().values() if n not in obras]
+    if not encontradas:
+        no_figura.insert(0, "Ofertas")
+    texto = "📋 **Lo que hay cargado de este producto:** " + " · ".join(figura)
+    if no_figura:
+        texto += f"  \nNo figura en: {', '.join(no_figura)}."
+    texto += "  \nPAMI y OSDOP no tienen vademécum cargado: PAMI se consulta en Alfabeta."
+    st.info(texto)
+    marca = vademecum.marca_corta(next(iter(obras.values()), vademecum.Cobertura(pregunta, "", "", "")))
+    s_m = "-".join(re.findall(r"[a-z0-9]+", consultas.normalizar(marca)))
+    if s_m:
+        st.link_button(f"PAMI (Alfabeta): {marca.upper()}", f"https://www.alfabeta.net/precio/{s_m}.html",
+                       use_container_width=True)
+
+
 @st.cache_data(show_spinner=False)
 def tabla_de_acciones(_mtime: float) -> dict:
     return accion.leer()
@@ -1326,7 +1358,7 @@ if consultas.ARCHIVO.exists():
             pregunta = ""
         dni = padron.dni_de_la_pregunta(pregunta) if pregunta.strip() else None
         if dni:
-            # "dni 25333620": solo dice en qué lista de OSDOP figura (sin nombre ni enfermedad).
+            # "25333620", "dni ..." o "issp ...": en qué listas figura (OSDOP, ISSPSE...) (sin nombre ni enfermedad).
             datos_padron, clave = padron.leer(), str(secretos().get("padron_clave", ""))
             if not datos_padron or not clave:
                 st.info("🪪 Los padrones (OSDOP, ISSPSE) todavía no están cargados.")
@@ -1335,12 +1367,15 @@ if consultas.ARCHIVO.exists():
                 mes = datos_padron.get("mes", "")
                 if listas:
                     nombres = [{"Cobertura especial": "Cobertura especial (crónico)",
-                                "ISSPSE": "convenio ISSPSE (descuento extra)"}.get(l, l) for l in listas]
+                                "ISSPSE": "médicos con convenio ISSPSE (descuento extra)"}.get(l, l) for l in listas]
                     st.success(f"🪪 DNI {dni}: figura en **{' · '.join(nombres)}**" + (f" (padrón {mes})" if mes else ""))
                     if "ISSPSE" in listas:
                         st.warning(AVISO_ISSPSE)
                 else:
                     st.warning(f"🪪 DNI {dni}: **no figura** en los padrones cargados (OSDOP, ISSPSE)" + (f", {mes}" if mes else "") + ".")
+                    st.caption("Ojo: la lista ISSPSE de la app es la de **médicos con convenio** (descuento extra), "
+                               "no la de afiliados. Para saber si un **paciente** está afiliado al ISSPSE, "
+                               "validalo en el sistema de validación de ISSPSE.")
             pregunta = ""  # no buscar el número en el resto de la base
         cargadas = vademecum.fuentes()  # {"vale": ("Vale Salud", ruta)}
         cobertura = (consultas.medicamento_de_cobertura(pregunta, {k: (k,) for k in cargadas})
@@ -1409,7 +1444,6 @@ if consultas.ARCHIVO.exists():
                 encontradas = ofertas.buscar(lista_ofertas, pregunta)
                 en_cajon = cajones.buscar(items_cajones, pregunta)
                 if en_cajon:
-                    mostrar_cajones(en_cajon)
                     # Ofertas del mismo producto que está en el cajón (sin repetir las ya encontradas).
                     ids = {o.codigo for o in encontradas}
                     for it in en_cajon:
@@ -1417,6 +1451,11 @@ if consultas.ARCHIVO.exists():
                             if o.codigo not in ids:
                                 encontradas.append(o)
                                 ids.add(o.codigo)
+                if not cobertura:
+                    # Medicamento: todo lo cargado en una sola respuesta, con un resumen arriba (pedido de Edu, 27/11/2026).
+                    resumen_del_producto(pregunta, encontradas, en_cajon)
+                if en_cajon:
+                    mostrar_cajones(en_cajon)
                 if r["hoy"]:
                     mostrar_horario_de_hoy(base, hoy)
                 if r["sin_horario"]:
